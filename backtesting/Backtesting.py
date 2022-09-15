@@ -29,12 +29,12 @@ class TradeBook():
     
     def __init__(self):
         self.tradeList = []
-        self.tradeDf = pd.DataFrame()
+        self.tradeBookDf = pd.DataFrame()
         
     def addTrade(self, trade) :
         self.tradeList.append(trade)
         
-    def addAllTradertoDf(self):
+    def addAllTradertoDf(self, merge = False,  tradeList = None):
         
         symbol = []
         tradeEntryTime = []
@@ -46,8 +46,13 @@ class TradeBook():
         tradeExitTime = []
         exitPrice = []
         profits = []
+        orderStatus = []
         
-        for trade in self.tradeList:
+        if merge : tradeList = tradeList
+        else : tradeList = self.tradeList
+        
+        
+        for trade in tradeList:
             
             symbol.append(trade.symbol)
             tradeEntryTime.append(trade.tradeEntryTime)
@@ -59,22 +64,25 @@ class TradeBook():
             exitPrice.append(trade.exitPrice)
             expiry.append(trade.expiry)
             profits.append(trade.profit)
+            orderStatus.append(trade.orderStatus)
             
-            dftemplate = {"symbol" : symbol, 
-                          "Entry Time" : tradeEntryTime, 
-                          "Type" : tradeType,
-                          "quantity" : qty,
-                          "Entry Price" : entryPrice,
-                          "SL price" : stopLossPrice,
-                          "Exit Time" : tradeExitTime,
-                          "Exit Price" : exitPrice,
-                          "Expiry Date" : expiry,
-                          "profit" : profits}
             
-        self.tradeDf = pd.DataFrame(dftemplate)
+        dftemplate = {"symbol" : symbol, 
+                      "Entry Time" : tradeEntryTime, 
+                      "Type" : tradeType,
+                      "quantity" : qty,
+                      "Entry Price" : entryPrice,
+                      "SL price" : stopLossPrice,
+                      "Exit Time" : tradeExitTime,
+                      "Exit Price" : exitPrice,
+                      "Expiry Date" : expiry,
+                      "profit" : profits,
+                      "orderStatus" : orderStatus}
         
-
-
+        if merge : self.tradeBookDf.append(dftemplate)
+        else : self.tradeBookDf = pd.DataFrame(dftemplate)
+        
+        
 class Trade():
     
     buy = "buy"
@@ -86,6 +94,22 @@ class Trade():
     def __init__(self, tradeId = 0, orderId = 0):
         self.id = tradeId
         self.orderId = orderId
+        
+        self.symbol = "No Name"
+        self.tradeEntryTime = None
+        self.tradeType = "None"
+        self.qty = 0
+        self.entryPrice = 0
+        self.expiry = 0
+        self.isOptions = False
+        self.stopLossPrice = 0
+        self.tradeExitTime = None
+        self.exitPrice = 0
+        self.isOpen = False
+        self.orderStatus = 0
+        self.profit = 0
+        
+        
             
         
     def openPosition(self, symbol, tradetime, tradetype, qty = 0, price = 0, expiry = 0, isOptions = False, SLprice = 0, orderStatus = "pending"):
@@ -104,11 +128,14 @@ class Trade():
         self.stopLossPrice = SLprice
         
         
-    def closePosition(self, tradetime, tradetype, price):
+    def closePosition(self, tradetime, tradetype, exitPrice):
         self.tradeExitTime = tradetime
-        self.exitPrice = price
+        self.exitPrice = exitPrice
         if self.tradeType == "short" : self.profit = (self.entryPrice - self.exitPrice) * self.qty
         if self.tradeType == "buy" : self.profit = (self.exitPrice - self.entryPrice) * self.qty    
+        
+        if exitPrice == 0 : self.profit = 0
+        
         self.isOpen = False
             
         

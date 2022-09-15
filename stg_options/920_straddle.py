@@ -18,6 +18,8 @@ import os, os.path
 from tqdm import tqdm
 import math
 from backtesting import Backtesting as bt
+import traceback
+import logging
 
 # Variables
 m1 = "1Min"
@@ -26,18 +28,20 @@ m15 = "15Min"
 h = "H"
 d = "1D"
 
-start_date = '2019-01'
-end_date = '2019-12'
+start_date = '2017-01'
+end_date = '2018-12'
 O = "Open"
 H = "High"
 L = "Low"
 C = "Close"
-bnf_op_path = "D:\DSW\Datas\quotes\After_cleaned\Banknifty\BNF_options"
+bnf_op_path = "D:\\andyvoid\data\quotes\After_cleaned\Banknifty\BNF_options"
+
+mainTradeBook = bt.TradeBook()
 
 #%%
 def get_banknifty_data(local = True) : 
     if local == True:
-        data = pd.read_csv("D:\DSW\Datas\quotes\After_cleaned\Banknifty\BNF_INDICES\BNF_2017_2021.csv", parse_dates=True)
+        data = pd.read_csv("D:\\andyvoid\data\quotes\After_cleaned\Banknifty\BNF_INDICES\BNF_2017_2021.csv", parse_dates=True)
         data.drop(['useless1','useless2'], axis=1, inplace = True)
         return data
     else:
@@ -89,7 +93,7 @@ bnf_resample.reset_index(inplace = True)
 
 ## GET OPTIONS DATA BY YEAR AND STORE IT IN A DATAFRAME
 rawOpdf = pd.DataFrame()
-years_fols = ['2019'] ##['2017','2018','2019','2020','2021']
+years_fols = ['2017','2018'] ##['2017','2018','2019','2020','2021']
 for year in years_fols: 
     
     if year == "2016" : 
@@ -97,13 +101,14 @@ for year in years_fols:
     
     rawOpdf = rawOpdf.append(getOptionsData(year))
     
-##%%
+#%% cell 7
 ##---------------------------------------------------------------##
 ## COPY OPTIONS DATA AND PROCESS THEM FOR BACKTESTING
 opdf = rawOpdf.copy(deep = True)
 
 opdf["Date"] = opdf["Date"].astype(str) + '-' + opdf["Time"].astype(str).map(lambda x: str(x)[:-3])
-opdf['Date'] = pd.to_datetime(opdf["Date"], format = "%d/%m/%Y-%H:%M")
+opdf['Date'] = pd.to_datetime(opdf["Date"], format = "%d/%m/%Y-%H:%M") ##errors = 'coerce')
+#naT = opdf[opdf['Date2'].isnull()]
 opdf.drop(['Time'], inplace = True, axis = 1)
 
 tickerDatabase = opdf["Ticker"].drop_duplicates(keep = 'first').to_frame()
@@ -137,7 +142,7 @@ def placeOrder(tickerSymbol, tickerDf, datetime, SLper, LotSize, tradeType, trad
         sl = entryprice + (entryprice / 100) * SLper
         orderStatus = 1
     else :
-        print("Order execution pending, price data not found")
+        print("Order execution pending, price data not found : " + tickerSymbol + " " , datetime)
     
     tradeObj.openPosition(tickerSymbol, datetime, tradeType, lotSize, entryprice, SLprice = sl, isOptions = True, orderStatus = orderStatus)
     return tradeObj
@@ -185,7 +190,9 @@ for i, row in tqdm(bnf_resample.iterrows(), desc = "Backtesting", total= bnf_res
      
     if newday and datentime.time().hour == 9 and datentime.time().minute == 20 :
         
+        #print(tickerSymbol.upper())
         #print("execute straddle")
+        
         CE_df = getTicker(tickerSymbol + "CE", m5)
         PE_df = getTicker(tickerSymbol + "PE", m5)
         
@@ -210,6 +217,7 @@ for i, row in tqdm(bnf_resample.iterrows(), desc = "Backtesting", total= bnf_res
         for tradeId in list(positions):
             trade = positions[tradeId]
             
+            exitPrice = 0
             if trade.isOpen and trade.orderStatus == 1: 
                 if (datentime in priceTrackerDf[tradeId].index):
                     exitPrice = priceTrackerDf[tradeId].loc(axis = 0)[datentime,"close"]
@@ -218,11 +226,11 @@ for i, row in tqdm(bnf_resample.iterrows(), desc = "Backtesting", total= bnf_res
                     startTime = onlyDate.replace(hour = 9, minute = 15)
                     endTime = onlyDate.replace(hour = 15, minute = 25)
                     exitPrice = priceTrackerDf[tradeId].loc(axis = 0)[startTime : endTime, "close"][-1]
-
-                trade.closePosition(datentime, "cover", exitPrice)
-                positions.pop(tradeId)
-                priceTrackerDf.pop(tradeId)
-                tradeBook.addTrade(trade)
+                    
+            trade.closePosition(datentime, "cover", exitPrice)
+            positions.pop(tradeId)
+            priceTrackerDf.pop(tradeId)
+            tradeBook.addTrade(trade)
         #print(datentime.time())
         
     """ IF THE TIME IS 9:20 and ABOVE CHECK POSITIONS FOR STOPLOSS AND EXECUTE THE PENDING ORDER """    
@@ -255,9 +263,11 @@ for i, row in tqdm(bnf_resample.iterrows(), desc = "Backtesting", total= bnf_res
         
         
 #%%
-tradeBook.addAllTradertoDf()
 
-backtestedReportDf = tradeBook.tradeDf
+mainTradeBook.addAllTradertoDf(True, tradeBook.tradeList)
+
+#%%
+backtestedReportDf = mainTradeBook.tradeBookDf
 
 cumSeries = pd.Series(bt.Cumulative(backtestedReportDf["profit"].tolist()))
 cumSeries.plot()        
