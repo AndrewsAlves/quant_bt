@@ -17,8 +17,13 @@ import pandas as pd
 import numpy as np
 import datetime as dt
 from dateutil.relativedelta import relativedelta 
+from tabulate import tabulate
+
 import matplotlib.pyplot as pp
+
 import plotly.express as pltEx
+from plotly.subplots import make_subplots
+import plotly.graph_objects as go
 import plotly.io as pio
 pio.renderers.default='browser'
 
@@ -249,7 +254,6 @@ class BacktestReportBuilder :
     _Strategy *
     """
     
-    
     """ 
     Charts 
     
@@ -259,10 +263,11 @@ class BacktestReportBuilder :
      
     """
     
-    def __init__(self,strategyName, btTradeBook = None, startCapital = 200000):
+    def __init__(self,strategyName, btTradeBook = None, startCapital = 200000, compoundProfits = False):
         self.strategyName = strategyName
         self.btTradeBook = btTradeBook
         self.startCapital = startCapital
+        self.compoundProfits = compoundProfits
         
     
     def buildReport(self):
@@ -301,8 +306,30 @@ class BacktestReportBuilder :
         
         maxTradeDurationSr = tBook['Exit Time'] - tBook['Entry Time']
         
+        
+        # finding returns for months and years
+        dateAndProfitDf = pd.DataFrame()
+        dateAndProfitDf['Date'] = tBook['Exit Time']
+        dateAndProfitDf['profits'] = tBook['profit']
+        dateAndProfitDf['Cum. profits'] = tBook['Cum. profits']
+        
+        monthlyReturnsDf = dateAndProfitDf.groupby(pd.Grouper(key='Date', axis=0, freq='M')).sum()
+        monthlyReturnsDf['Cum. profits'] = dateAndProfitDf[['Date','Cum. profits']].groupby(pd.Grouper(key='Date', axis=0, freq='M')).last()
+
+        yearlyReturnsDf = dateAndProfitDf.groupby(pd.Grouper(key='Date', axis=0, freq='Y')).sum()
+        yearlyReturnsDf['Cum. profits'] = dateAndProfitDf[['Date','Cum. profits']].groupby(pd.Grouper(key='Date', axis=0, freq='Y')).last()
+
+        # monthly & Yearly return percentage compared with previous cumulative profit or starting capital
+        if self.compoundProfits : 
+            print('find cumulative compound percentage')
+        else :
+            monthlyReturnsDf['Com. per'] = monthlyReturnsDf['profits'] / (self.startCapital / 100.0)
+            yearlyReturnsDf['Com. per'] = yearlyReturnsDf['profits'] / (self.startCapital / 100.0)
+
         report = {}
         report['strategy'] =  self.strategyName
+        report['starting Capital'] =  self.startCapital
+        report['compount profits'] = self.compoundProfits
         report['startdate'] = startDate
         report['enddate'] = endDate
         report['duration'] = durationDelta
@@ -323,33 +350,50 @@ class BacktestReportBuilder :
         report['avg_trade_duration'] = maxTradeDurationSr.mean()
         report['profitfactor'] = calculateProfitFactor(tBook)
         
-        
         print("\\\\\\\\\\\\\ BACKTEST REPORT ///////////////")
-        print("\n Strategy --- ", self.strategyName)
-        print("\n Start Date --- ", startDate)
-        print("\n End Date --- ", endDate)
-        print("\n duration --- ", durationDelta)
-        print("\n Equity Final --- ", equityFinal)
-        print("\n Equity Peak --- ", equityPeak)
-        print("\n Total Return [%] --- ", returnPer)
-        print("\n CAGR [%] --- ", compoundAGR)
-        print("\n Max. drawdown [%] --- ", maximumDrawdownPer)
-        print("\n Total trades --- ", tBook.shape[0])
-        print("\n Win Trades --- ", getWin_LoseRate(tBook)[0])
-        print("\n Loss Trades --- ", getWin_LoseRate(tBook)[1])
-        print("\n Neutral Trade --- ", getWin_LoseRate(tBook)[2])
-        print("\n Win per [%] --- ", (getWin_LoseRate(tBook)[0] / tBook.shape[0]) * 100.0)
-        print("\n Loss per [%] --- ", (getWin_LoseRate(tBook)[1] / tBook.shape[0]) * 100.0)
-        print("\n Best Trade --- ", tBook['profit'].max())
-        print("\n Worst Trade --- ", tBook['profit'].min())
-        print("\n Max Trade Duration --- ", maxTradeDurationSr.max())
-        print("\n Avg Trade Duration --- ", maxTradeDurationSr.mean())
-        print("\n Profit Factor --- ", calculateProfitFactor(tBook))
+        print(tabulate(report.items(), headers = ['Parameters', 'Result'], tablefmt='grid'))
+        print("\n\\\\\\\\\\\\\ YEARLY RETURNS ///////////////")
+        print(tabulate(yearlyReturnsDf, headers = ['Date', 'Profits', 'Cum. Profit', 'Cum. Profit %'], tablefmt='grid'))
+        print("\n\\\\\\\\\\\\\ MONTHLY RETURNS ///////////////")
+        print(tabulate(monthlyReturnsDf, headers = ['Date', 'Profits', 'Cum. Profit', 'Cum. Profit %'], tablefmt='grid'))
+       
+        
+        # print("\\\\\\\\\\\\\ BACKTEST REPORT ///////////////")
+        # print("\n Strategy --- ", self.strategyName)
+        # print("\n starting Capital --- ", self.startCapital)
+        # print("\n Compount profits? --- ", self.compoundProfits)
+        # print("\n Start Date --- ", startDate)
+        # print("\n End Date --- ", endDate)
+        # print("\n duration --- ", durationDelta)
+        # print("\n Equity Final --- ", equityFinal)
+        # print("\n Equity Peak --- ", equityPeak)
+        # print("\n Total Return [%] --- ", returnPer)
+        # print("\n CAGR [%] --- ", compoundAGR)
+        # print("\n Max. drawdown [%] --- ", maximumDrawdownPer)
+        # print("\n Total trades --- ", tBook.shape[0])
+        # print("\n Win Trades --- ", getWin_LoseRate(tBook)[0])
+        # print("\n Loss Trades --- ", getWin_LoseRate(tBook)[1])
+        # print("\n Neutral Trade --- ", getWin_LoseRate(tBook)[2])
+        # print("\n Win per [%] --- ", (getWin_LoseRate(tBook)[0] / tBook.shape[0]) * 100.0)
+        # print("\n Loss per [%] --- ", (getWin_LoseRate(tBook)[1] / tBook.shape[0]) * 100.0)
+        # print("\n Best Trade --- ", tBook['profit'].max())
+        # print("\n Worst Trade --- ", tBook['profit'].min())
+        # print("\n Max Trade Duration --- ", maxTradeDurationSr.max())
+        # print("\n Avg Trade Duration --- ", maxTradeDurationSr.mean())
+        # print("\n Profit Factor --- ", calculateProfitFactor(tBook))
+        
         
         figEquityCurve = pltEx.line(tBook, x = 'Exit Time', y = 'Cum. profits')
         figEquityCurve.show()
         
-        return report
+        runningDrawdownDf = pd.DataFrame()
+        runningDrawdownDf['drawdown'] = calculateRunningDrawdown(tBook['Cum. profits'])
+        runningDrawdownDf['Date'] = tBook['Exit Time']
+        
+        figDrawdown = pltEx.line(runningDrawdownDf, x = 'Date', y = 'drawdown')
+        figDrawdown.show()
+        
+        return report, monthlyReturnsDf, yearlyReturnsDf
 
 
 
