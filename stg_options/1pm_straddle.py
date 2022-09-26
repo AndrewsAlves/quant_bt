@@ -30,7 +30,7 @@ tf_1H = "H"
 tf_1D = "1D"
 
 start_date = '2017-01'
-end_date = '2017-12'
+end_date = '2021-12'
 O = "Open"
 H = "High"
 L = "Low"
@@ -96,7 +96,7 @@ for i, row in tqdm(bnfResampled.iterrows(), desc = "Backtesting", total = bnfRes
     strike = str(round(round(closeP,-2)))
     
     
-    if newday and datentime.time().hour == 9 and datentime.time().minute == 20 :
+    if newday and datentime.time().hour == 13 and datentime.time().minute == 5 :
         
         #print(tickerSymbol.upper())
         #print("execute straddle")
@@ -133,7 +133,7 @@ for i, row in tqdm(bnfResampled.iterrows(), desc = "Backtesting", total = bnfRes
                     exitPrice = priceTrackerDf[tradeId].loc(axis = 0)[datentime,"close"]
                 else :
                     print("No data available for this datetime so getting the last traded price for that day")
-                    startTime = onlyDate.replace(hour = 9, minute = 15)
+                    startTime = onlyDate.replace(hour = 1, minute = 5)
                     endTime = onlyDate.replace(hour = 15, minute = 25)
                     exitPrice = priceTrackerDf[tradeId].loc(axis = 0)[startTime : endTime, "close"][-1]
                     
@@ -144,7 +144,7 @@ for i, row in tqdm(bnfResampled.iterrows(), desc = "Backtesting", total = bnfRes
         #print(datentime.time())
         
     """ IF THE TIME IS 9:20 and ABOVE CHECK POSITIONS FOR STOPLOSS AND EXECUTE THE PENDING ORDER """    
-    if datentime.time().hour >= 9 and datentime.time().minute > 20 :
+    if datentime.time().hour >= 13 and datentime.time().minute > 5 :
         for tradeId in list(positions) :
             trade = positions[tradeId]
             
@@ -174,10 +174,11 @@ for i, row in tqdm(bnfResampled.iterrows(), desc = "Backtesting", total = bnfRes
 #%%
 
 tradeBook.addAllTradertoDf()
-tradeBook.exportTradebookToCSV("920_straddle_trades.csv")
+tradeBook.exportTradebookToCSV("1pm_Straddle_trades.csv")
 
 #%%
 backtestedReportDf = tradeBook.tradeBookDf
+
 
 cumSeries = pd.Series(bt.CumulativeCapital(backtestedReportDf["profit"].tolist(), 200000))
 cumSeries.round()

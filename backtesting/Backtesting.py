@@ -107,6 +107,11 @@ class TradeBook():
         else : self.tradeBookDf = pd.DataFrame(dftemplate)
         
         
+    def exportTradebookToCSV(self, fileName) :
+        self.tradeBookDf.to_csv('D:\\andyvoid\\data\\backtested_trades\\' + fileName)
+        
+        
+        
 class Trade():
     
     buy = "buy"
@@ -299,6 +304,9 @@ class BacktestReportBuilder :
         
         ## Find compound Annual return
         totalYears = relativedelta(endDate, startDate).years
+        ## check if total years less than a year
+        if (totalYears == 0) :
+            totalYears = 1            
         compoundAGR = CAGR(self.startCapital, equityFinal, totalYears)
         
         # ## calculate drawdown 
