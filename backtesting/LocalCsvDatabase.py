@@ -12,9 +12,9 @@ import pandas as pd
 import datetime as dt
 
 
-path_bnfdb = "D:\\andyvoid\\data\\quotes\\csv_database\\banknifty"
-path_bnfOptionsdb = "D:\\andyvoid\\data\\quotes\\csv_database\\banknifty\\options"
-path_bnfIndicesdb = "D:\\andyvoid\\data\\quotes\\csv_database\\banknifty\\indices"
+path_bnfdb = "G:\\andyvoid\\data\\quotes\\csv_database\\banknifty"
+path_bnfOptionsdb = "G:\\andyvoid\\data\\quotes\\csv_database\\banknifty\\options"
+path_bnfIndicesdb = "G:\\andyvoid\\data\\quotes\\csv_database\\banknifty\\indices"
 bnfTickerDf = None
 
 #%% 
@@ -26,6 +26,7 @@ def getBnfOptionsTickerDb() :
     df['Expiry Date'] = pd.to_datetime(df['Expiry Date'])
     return df
 
+bnfOptionsTickerDb = getBnfOptionsTickerDb()
 
 def getBnfOptionsTickerSymbol(datetime, strike, PEorCE) : 
     
@@ -47,6 +48,13 @@ def getBnfOptionsTickerSymbol(datetime, strike, PEorCE) :
     
     return tickerSymbol.upper()
 
+def isOptionsExpiryDay(datetime) : 
+    
+    onlyDate = dt.datetime(datetime.date().year, datetime.date().month, datetime.date().day)
+    isExpiryday = onlyDate in bnfOptionsTickerDb["Expiry Date"].tolist()
+    return isExpiryday
+    
+
 def getTicker(datetime, tickerSymbol, timeframe = "1Min") : 
     
     tickerDf = pd.read_csv(path_bnfOptionsdb + "\\" + str(datetime.date().year) + "\\" + tickerSymbol + ".csv")
@@ -58,7 +66,16 @@ def getTicker(datetime, tickerSymbol, timeframe = "1Min") :
     reindexDate = pd.date_range(tickerDf.index[0], dt.datetime(tickerDf.index[-1].date().year, tickerDf.index[-1].date().month, tickerDf.index[-1].date().day, hour = 15, minute = 29), freq="1Min")
     tickerDf = tickerDf.reindex(reindexDate)
     
-    tickerResampled = tickerDf.Close.resample(timeframe).ohlc().fillna(method = "ffill")
+    ohlc = {
+    'Open': 'first',
+    'High': 'max',
+    'Low': 'min',
+    'Close': 'last',
+    'Volume': 'sum',
+    'Open Interest' : 'sum'
+    }
+    
+    tickerResampled = tickerDf.resample(timeframe).apply(ohlc).fillna(method = "ffill")
     tickerResampled["ticker"] = tickerSymbol.upper()
     
     return tickerResampled
@@ -69,10 +86,16 @@ def getTicker(datetime, tickerSymbol, timeframe = "1Min") :
 
 def get_banknifty_data(startDate, endDate, timeframe, local = True) : 
     if local == True:
-        datadf = pd.read_csv(path_bnfIndicesdb + "\\" + "BANKNIFTY_2017_2021.csv", parse_dates=True)
+        datadf = pd.read_csv(path_bnfIndicesdb + "\\" + "BANKNIFTY_2010_2021.csv", parse_dates=True)
         datadf['Date'] = pd.to_datetime(datadf['Date'])
         datadf.set_index('Date', inplace = True)
-        bnf_resampled = datadf[startDate : endDate]['Close'].resample(timeframe).ohlc().dropna()
+        ohlc = {
+            'Open': 'first',
+            'High': 'max',
+            'Low': 'min',
+            'Close': 'last'
+            }
+        bnf_resampled = datadf[startDate : endDate].resample(timeframe).apply(ohlc).dropna()
         bnf_resampled.reset_index(inplace = True)
         return bnf_resampled
     else:

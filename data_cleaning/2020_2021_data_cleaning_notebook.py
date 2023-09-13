@@ -110,3 +110,26 @@ def getOptionsData(year) :
     return opdf    
 
 getOptionsData("2021")
+
+#%%
+bnfRaw = pd.read_csv("G:\\andyvoid\\data\\quotes\\csv_database\\banknifty\\indices\\BNF_2010_2020.csv")
+bnfRaw["Date"] = bnfRaw["Date"].astype(str) + '-' + bnfRaw["Time"].astype(str)
+bnfRaw['Date'] = pd.to_datetime(bnfRaw["Date"], format = "%Y%m%d-%H:%M") ##errors = 'coerce')
+#naT = opdf[opdf['Date2'].isnull()]
+bnfRaw.drop(['Time'], inplace = True, axis = 1)
+bnfRaw.to_csv("G:\\andyvoid\\data\\quotes\\csv_database\\banknifty\\indices\\BNF_2010_2020_cleaned.csv", index= False)
+
+#%%
+vixRaw = pd.read_csv("G:\\andyvoid\\data\\quotes\\csv_database\\india_vix\\INDIA_VIX_2010_2023.csv")
+vixRaw['Date'] = vixRaw['Date'].astype(str).map(lambda x: str(x)[4:-31])
+vixRaw['Date'] = pd.to_datetime(vixRaw["Date"], format = "%b %d %Y %H:%M:%S")
+vixRaw.to_csv("G:\\andyvoid\\data\\quotes\\csv_database\\india_vix\\INDIA_VIX_2010_2023_cleaned.csv", index= False)
+
+
+
+
+
+
+
+
+

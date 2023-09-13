@@ -3,7 +3,7 @@
 Created on Wed Aug 22 15:15:17 2022
 
 ###########################################
-### 920 STRADLE BACKTESTING BNF  ##########
+### 11am STRADLE BACKTESTING BNF  ##########
 ###########################################
 
 
@@ -48,11 +48,11 @@ bnfResampled = csv_database.get_banknifty_data(start_date, end_date, tf_5Min)
 #%%
 
 """ 
-920 strategy and backtesting section 
+11am strategy and backtesting section 
 Time frame = 5m 
 """
 
-def placeOrder(tickerSymbol, tickerDf, datetime, SLper, qty, tradeType, tradeObj = None) :
+def placeOrder(tickerSymbol, tickerDf, datetime, SLper, LotSize, tradeType, tradeObj = None) :
     if tradeObj == None : 
         tradeObj = bt.Trade()
         tradeObj.tradeId = id(tradeObj)
@@ -61,13 +61,13 @@ def placeOrder(tickerSymbol, tickerDf, datetime, SLper, qty, tradeType, tradeObj
     sl = 0
     orderStatus = 0
     if datetime in tickerDf.index :
-        entryprice = tickerDf.loc(axis = 0)[datetime, "Close"]
+        entryprice = tickerDf.loc(axis = 0)[datetime, C]
         sl = entryprice + (entryprice / 100) * SLper
         orderStatus = 1
     else :
         print("Order execution pending, price data not found : " + tickerSymbol + " " , datetime)
     
-    tradeObj.openPosition(tickerSymbol, datetime, tradeType, qty, entryprice, SLprice = sl, isOptions = True, orderStatus = orderStatus)
+    tradeObj.openPosition(tickerSymbol, datetime, tradeType, lotSize, entryprice, SLprice = sl, isOptions = True, orderStatus = orderStatus)
     return tradeObj
     
 
@@ -77,16 +77,15 @@ priceTrackerDf = {}
 SLper = 25
 lotSize = 25
 slippage = 1
-qty = 50
 
 for i, row in tqdm(bnfResampled.iterrows(), desc = "Backtesting", total = bnfResampled.shape[0]): 
        
     datentime = row["Date"]
     onlyDate = dt.datetime(datentime.date().year, datentime.date().month, datentime.date().day)
-    openP = row["Open"]
-    highP = row["High"]
-    lowP = row["Low"]
-    closeP = row["Close"]
+    openP = row[O]
+    highP = row[H]
+    lowP = row[L]
+    closeP = row[C]
     expiryday = False
     
     newday = True
@@ -97,7 +96,7 @@ for i, row in tqdm(bnfResampled.iterrows(), desc = "Backtesting", total = bnfRes
     strike = str(round(round(closeP,-2)))
     
     
-    if newday and datentime.time().hour == 13 and datentime.time().minute == 5 :
+    if newday and datentime.time().hour == 11 and datentime.time().minute == 00 :
         
         #print(tickerSymbol.upper())
         #print("execute straddle")
@@ -108,10 +107,10 @@ for i, row in tqdm(bnfResampled.iterrows(), desc = "Backtesting", total = bnfRes
         PE_df = csv_database.getTicker(datentime, tickerSymbolPE, tf_5Min)
         
         """ CE EXECUTION """
-        ce_entry = placeOrder(tickerSymbolCE, CE_df, datentime, SLper, qty, "short")
+        ce_entry = placeOrder(tickerSymbolCE, CE_df, datentime, SLper, lotSize, "short")
                 
         """ PE EXECUTION """
-        pe_entry = placeOrder(tickerSymbolPE, PE_df, datentime, SLper, qty, "short")
+        pe_entry = placeOrder(tickerSymbolPE, PE_df, datentime, SLper, lotSize, "short")
         
         """ ADD OPEN POSITIONS TO THE POSITIONS LIST """
         positions[pe_entry.tradeId] = pe_entry
@@ -131,12 +130,12 @@ for i, row in tqdm(bnfResampled.iterrows(), desc = "Backtesting", total = bnfRes
             exitPrice = 0
             if trade.isOpen and trade.orderStatus == 1: 
                 if (datentime in priceTrackerDf[tradeId].index):
-                    exitPrice = priceTrackerDf[tradeId].loc(axis = 0)[datentime,"Close"]
+                    exitPrice = priceTrackerDf[tradeId].loc(axis = 0)[datentime,C]
                 else :
                     print("No data available for this datetime so getting the last traded price for that day")
-                    startTime = onlyDate.replace(hour = 1, minute = 5)
+                    startTime = onlyDate.replace(hour = 11, minute = 00)
                     endTime = onlyDate.replace(hour = 15, minute = 25)
-                    exitPrice = priceTrackerDf[tradeId].loc(axis = 0)[startTime : endTime, "Close"][-1]
+                    exitPrice = priceTrackerDf[tradeId].loc(axis = 0)[startTime : endTime, C][-1]
                     
             trade.closePosition(datentime, "cover", exitPrice)
             positions.pop(tradeId)
@@ -144,14 +143,14 @@ for i, row in tqdm(bnfResampled.iterrows(), desc = "Backtesting", total = bnfRes
             tradeBook.addTrade(trade)
         #print(datentime.time())
         
-    """ IF THE TIME IS 9:20 and ABOVE CHECK POSITIONS FOR STOPLOSS AND EXECUTE THE PENDING ORDER """    
-    if datentime.time().hour >= 13 and datentime.time().minute > 5 :
+    """ IF THE TIME IS 11:00 and ABOVE CHECK POSITIONS FOR STOPLOSS AND EXECUTE THE PENDING ORDER """    
+    if datentime.time().hour >= 11 and datentime.time().minute > 00 :
         for tradeId in list(positions) :
             trade = positions[tradeId]
             
             """ Check order status and execute the pending order"""
             if trade.orderStatus == 0 and tradeId in priceTrackerDf : 
-                placeOrder(trade.symbol, priceTrackerDf[tradeId], datentime, SLper, qty, "short", tradeObj = trade)
+                placeOrder(trade.symbol, priceTrackerDf[tradeId], datentime, SLper, lotSize, "Short", tradeObj = trade)
                                 
             """ Check order status and track the SL price"""
             if trade.orderStatus == 1 and tradeId in priceTrackerDf : 
@@ -160,7 +159,7 @@ for i, row in tqdm(bnfResampled.iterrows(), desc = "Backtesting", total = bnfRes
                     continue
                     
                 slprice = trade.stopLossPrice
-                barHigh = priceTrackerDf[tradeId].loc(axis = 0)[datentime, "High"]
+                barHigh = priceTrackerDf[tradeId].loc(axis = 0)[datentime, H]
                 
                 if barHigh > slprice : 
                     exitPrice = slprice + slippage
@@ -175,13 +174,12 @@ for i, row in tqdm(bnfResampled.iterrows(), desc = "Backtesting", total = bnfRes
 #%%
 
 tradeBook.addAllTradertoDf()
-tradeBook.exportTradebookToCSV("1pm_Straddle_trades.csv")
+tradeBook.exportTradebookToCSV("11am_straddle_trades.csv")
 
 #%%
 backtestedReportDf = tradeBook.tradeBookDf
 
-
-cumSeries = pd.Series(bt.CumulativeCapital(backtestedReportDf["profit"].tolist(), 200000))
+cumSeries = pd.Series(bt.CumulativeCapital(backtestedReportDf["profit"].tolist(), 100000))
 cumSeries.round()
 cumSeries.plot()
         
