@@ -13,20 +13,22 @@ It can produce all the Information about Equity reports
 
 """
 
+import os
 import pandas as pd
 import numpy as np
 import datetime as dt
 from dateutil.relativedelta import relativedelta 
 from tabulate import tabulate
 
-import matplotlib.pyplot as pp
-
 import plotly.express as pltEx
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 import plotly.io as pio
+from plotly.colors import n_colors
+
 pio.renderers.default='browser'
 
+tradeListPath = 'G:\\andyvoid\\data\\backtest_report\\backtest_trades\\' 
 
 def Cumulative(lists):
     cu_list = []
@@ -47,7 +49,11 @@ class TradeBook():
     def __init__(self):
         self.tradeList = []
         self.tradeBookDf = pd.DataFrame()
-        
+        self.missingData = pd.DataFrame()
+    
+    def getTradeBook(self) : return self.tradeBookDf
+
+    
     def addTrade(self, trade) :
         self.tradeList.append(trade)
         
@@ -107,9 +113,15 @@ class TradeBook():
         else : self.tradeBookDf = pd.DataFrame(dftemplate)
         
         
-    def exportTradebookToCSV(self, fileName) :
-        self.tradeBookDf.to_csv('G:\\andyvoid\\data\\backtested_trades\\' + fileName)
+    def exportTradebookToCSV(self,fileId, strategyName) :
+        self.tradeBookDf.to_csv(tradeListPath + "\\" + fileId + "_" + strategyName + '.csv')
+        self.missingData.to_csv(tradeListPath + "\\" + fileId + "_MissingData.csv")
         
+    def generateReport(self,StrategyName, capital) : 
+        self.addAllTradertoDf()
+        btreprotBuilder = BacktestReportBuilder(StrategyName, btTradeBook = self.tradeBookDf, startCapital = capital)
+        report, dailyReturn, monthlyReturn, yeatlyReturnDf = btreprotBuilder.buildReport()
+        return self.tradeBookDf
         
         
 class Trade():
@@ -183,7 +195,6 @@ class Trade():
 ///////// BACKTEST BUILDER /////////////////////////
 //////////////////////////////////////////////////
 """
-            
 
 def getChangePercent(current, previous):
     """ To calcualte the percentage of capital vs total return """
@@ -214,7 +225,7 @@ def calculateRunningDrawdown(cum_profit) :
     #Max_Daily_Drawdown.plot()
     #pp.show()
     
-    return Daily_Drawdown
+    return Daily_Drawdown * 100
 
 def getWin_LoseRate(tBook) :
     wins = tBook[tBook['profit'] > 0]
@@ -345,25 +356,25 @@ class BacktestReportBuilder :
         report['strategy'] =  self.strategyName
         report['starting Capital'] =  self.startCapital
         report['compount profits'] = self.compoundProfits
-        report['startdate'] = startDate
-        report['enddate'] = endDate
-        report['duration'] = durationDelta
+        report['startdate'] = str(startDate)
+        report['enddate'] = str(endDate)
+        report['duration'] = str(durationDelta)
         report['equityfinal'] = equityFinal
         report['equitypeak'] = equityPeak
-        report['totalreturn'] = returnPer
-        report['cagr'] = compoundAGR
-        report['max_drawdown'] = maximumDrawdownPer
+        report['totalreturn'] = round(returnPer, 2)
+        report['cagr'] = round(compoundAGR, 2)
+        report['max_drawdown'] = round(maximumDrawdownPer, 2)
         report['total_trades'] = tBook.shape[0]
         report['win_trades'] = getWin_LoseRate(tBook)[0]
         report['loss_trades'] = getWin_LoseRate(tBook)[1]
         report['neutral_trades'] = getWin_LoseRate(tBook)[2]
-        report['win_per'] = (getWin_LoseRate(tBook)[0] / tBook.shape[0]) * 100.0
-        report['loss_per'] = (getWin_LoseRate(tBook)[1] / tBook.shape[0]) * 100.0
+        report['win_per'] = round((getWin_LoseRate(tBook)[0] / tBook.shape[0]) * 100.0, 2)
+        report['loss_per'] = round((getWin_LoseRate(tBook)[1] / tBook.shape[0]) * 100.0, 2)
         report['best_trade'] =  tBook['profit'].max()
         report['worst_trade'] = tBook['profit'].min()
         report['max_trade_duration'] = maxTradeDurationSr.max()
         report['avg_trade_duration'] = maxTradeDurationSr.mean()
-        report['profitfactor'] = calculateProfitFactor(tBook)
+        report['profitfactor'] = round(calculateProfitFactor(tBook), 2)
         
         # Day wise Analysis
         dayWiseReport = {}
@@ -372,7 +383,13 @@ class BacktestReportBuilder :
         dayWiseReport['Total Win Days'] = getWin_LoseRate(dailyReturnsDf)[0]
         dayWiseReport['Total Loss Days'] = getWin_LoseRate(dailyReturnsDf)[1]
 
+        reportDf = pd.DataFrame(report.items(), columns=['Parameters', 'Result'])
+        dayWiseReportDf = pd.DataFrame(dayWiseReport.items(), columns=['Parameters', 'Result'])
         
+        dayWiseReportDf = dayWiseReportDf.round(2)
+        yearlyReturnsDf = yearlyReturnsDf.round(2)
+        monthlyReturnsDf = monthlyReturnsDf.round(2)
+
         
         print("\\\\\\\\\\\\\ BACKTEST REPORT ///////////////")
         print(tabulate(report.items(), headers = ['Parameters', 'Result'], tablefmt='grid'))
@@ -408,19 +425,99 @@ class BacktestReportBuilder :
         # print("\n Avg Trade Duration --- ", maxTradeDurationSr.mean())
         # print("\n Profit Factor --- ", calculateProfitFactor(tBook))
         
+        #/////////////////////////////
+    
+        # figEquityCurve = pltEx.line(tBook, x = 'Exit Time', y = 'Cum. profits')
+        # figEquityCurve.show()
+    
+        # figDrawdown = pltEx.line(runningDrawdownDf, x = 'Date', y = 'drawdown')
+        # figDrawdown.show()
         
-        figEquityCurve = pltEx.line(tBook, x = 'Exit Time', y = 'Cum. profits')
-        figEquityCurve.show()
+        # figDailyReturn = pltEx.bar(dailyReturnsDf, x = dailyReturnsDf.index, y = 'profit')
+        # figDailyReturn.show()
+        
+        
+        
+        #//////////////////////////////////// TABLE LAYOUT ////////////////
+        
+        headerColor = pltEx.colors.qualitative.Dark24[5]
+        cellColor = pltEx.colors.qualitative.Pastel2[7]    
+        
+        fig = make_subplots(
+            rows=2, cols=2,
+            shared_xaxes=True,
+            vertical_spacing=0.01,
+            horizontal_spacing=0.01,
+            specs=[[{"type": "table"}, {"type": "table"}],[ {"type": "table"}, {"type": "table"}]]
+        )
+        
+        fig.add_trace(go.Table(header=dict(values=list(reportDf.columns), fill_color= headerColor, align='left',font=dict(color='White')),
+                               cells=dict(values=[reportDf['Parameters'], 
+                                                  reportDf['Result'].astype(str)], 
+                                          fill_color= cellColor,
+                                          align='left')),
+                      row=1, col=1)
+        
+        fig.add_trace(go.Table(header=dict(values=list(dayWiseReportDf.columns), fill_color=headerColor, align='left',font=dict(color='White')),
+                               cells=dict(values=[dayWiseReportDf['Parameters'], 
+                                                  dayWiseReportDf['Result']], 
+                                          fill_color= cellColor, 
+                                          align='left')),
+                      row=2, col=1)
+        
+        columnList = list(monthlyReturnsDf.columns)
+        columnList.insert(0, 'Date')
+        print(columnList)
+        
+        fig.add_trace(go.Table(header=dict(values= columnList, fill_color=headerColor, align='left', font=dict(color='White')),
+                               cells=dict(values=[yearlyReturnsDf.index.astype(str), 
+                                                  yearlyReturnsDf['profit'],
+                                                  yearlyReturnsDf['Cum. profits'],
+                                                  yearlyReturnsDf['Com. per']], 
+                                          fill_color= cellColor, 
+                                          align='left')),
+                      row=1, col=2)
+        
+        fig.add_trace(go.Table(header=dict(values= columnList, fill_color=headerColor, align='left', font=dict(color='White')),
+                               cells=dict(values=[monthlyReturnsDf.index.astype(str), 
+                                                  monthlyReturnsDf['profit'],
+                                                  monthlyReturnsDf['Cum. profits'],
+                                                  monthlyReturnsDf['Com. per']], 
+                                          fill_color= cellColor,
+                                          align='left')),
+                      row=2, col=2)
+    
+        fig.update_layout(
+            showlegend=False,
+            title_text= self.strategyName + " Report",
+        )
+    
+                                        
+                                        # Plot the figure
+        fig.show()
+        
+        #//////////////////////////////// CHART LAYOUT //////////////////
         
         runningDrawdownDf = pd.DataFrame()
         runningDrawdownDf['drawdown'] = calculateRunningDrawdown(tBook['Cum. profits'])
         runningDrawdownDf['Date'] = tBook['Exit Time']
         
-        figDrawdown = pltEx.line(runningDrawdownDf, x = 'Date', y = 'drawdown')
-        figDrawdown.show()
+        figCharts = make_subplots(rows=3, cols=1)
+        figCharts.append_trace(go.Scatter(x=tBook['Exit Time'], y=tBook['Cum. profits'],
+                    mode='lines+markers',
+                    name='Cum. Profits'), row=1, col=1)
+                            
+        figCharts.append_trace(go.Scatter(x= runningDrawdownDf['Date'], y=runningDrawdownDf['drawdown'],
+                    mode='lines+markers',
+                    name='Cum. Drawdown'), row=2, col=1)
         
-        figDailyReturn = pltEx.bar(dailyReturnsDf, x = dailyReturnsDf.index, y = 'profit')
-        figDailyReturn.show()
+        figCharts.append_trace(go.Scatter(x= dailyReturnsDf.index, y= dailyReturnsDf['profit'],
+                    mode='lines+markers',
+                    name='Daily PnL'), row=3, col=1)
+        
+        figCharts.update_layout(title_text="Charts", autosize = True, height = 900*3)
+        figCharts.update_xaxes(rangeslider=dict(visible=False)) 
+        figCharts.show()
         
         return report, dailyReturnsDf, monthlyReturnsDf, yearlyReturnsDf
 

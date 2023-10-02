@@ -22,7 +22,7 @@ bnfTickerDf = None
 """ THIS CELL IS TO GET BANKNIFTY OPTIONS DATABASE """
 
 def getBnfOptionsTickerDb() : 
-    df = pd.read_csv(path_bnfOptionsdb + "\\" + "BNF_TICKER_DB_2017_2021.csv")
+    df = pd.read_csv(path_bnfOptionsdb + "\\" + "BNF_TICKER_DB_2017_2023.csv")
     df['Expiry Date'] = pd.to_datetime(df['Expiry Date'])
     return df
 
@@ -36,13 +36,13 @@ def getBnfOptionsTickerSymbol(datetime, strike, PEorCE) :
     isExpiryday = onlyDate in allTickerExpiries["Expiry Date"].tolist()
     if isExpiryday :
         d = datetime.date().strftime("%d").zfill(2)
-        upcomingExpiry = d + datetime.date().strftime("%b%y")             
+        upcomingExpiry = d + datetime.date().strftime("%b%y")      
     else :
         upcoming_expiries = allTickerExpiries["Expiry Date"] > datetime
         first_occ = upcoming_expiries.idxmax()
         upcomingExpiryDate =  allTickerExpiries.loc[first_occ, "Expiry Date"]
         d = upcomingExpiryDate.date().strftime("%d").zfill(2)
-        upcomingExpiry = d + upcomingExpiryDate.date().strftime("%b%y")             
+        upcomingExpiry = d + upcomingExpiryDate.date().strftime("%b%y")
             
     tickerSymbol = "BANKNIFTY" + upcomingExpiry + strike + PEorCE
     
@@ -57,7 +57,12 @@ def isOptionsExpiryDay(datetime) :
 
 def getTicker(datetime, tickerSymbol, timeframe = "1Min") : 
     
-    tickerDf = pd.read_csv(path_bnfOptionsdb + "\\" + str(datetime.date().year) + "\\" + tickerSymbol + ".csv")
+    try :
+        tickerDf = pd.read_csv(path_bnfOptionsdb + "\\" + str(datetime.date().year) + "\\" + tickerSymbol + ".csv")
+    except FileNotFoundError as e:
+        print("data empty")
+        tickerDf = pd.DataFrame()
+        return tickerDf
     
     tickerDf['Date'] = pd.to_datetime(tickerDf['Date'])
     tickerDf = tickerDf.drop_duplicates(subset = ['Date'],keep = 'first')
@@ -70,13 +75,16 @@ def getTicker(datetime, tickerSymbol, timeframe = "1Min") :
     'Open': 'first',
     'High': 'max',
     'Low': 'min',
-    'Close': 'last',
-    'Volume': 'sum',
-    'Open Interest' : 'sum'
+    'Close': 'last'
+    #'Volume': 'sum'
+    #'OpenInterest' : 'sum'
     }
     
     tickerResampled = tickerDf.resample(timeframe).apply(ohlc).fillna(method = "ffill")
     tickerResampled["ticker"] = tickerSymbol.upper()
+    
+    #tickerResampled.to_csv(tickerSymbol + ".csv")
+    #print(tickerResampled.head)
     
     return tickerResampled
 
@@ -85,8 +93,10 @@ def getTicker(datetime, tickerSymbol, timeframe = "1Min") :
 """ THIS CELL IS TO GET BANKNIFTY INDICES DATABASE """
 
 def get_banknifty_data(startDate, endDate, timeframe, local = True) : 
+    #BANKNIFTY_2010_2021
+    #NIFTY_BANK_2011_2023_AUG
     if local == True:
-        datadf = pd.read_csv(path_bnfIndicesdb + "\\" + "BANKNIFTY_2010_2021.csv", parse_dates=True)
+        datadf = pd.read_csv(path_bnfIndicesdb + "\\" + "NIFTY_BANK_2011_2023_AUG.csv", parse_dates=True)
         datadf['Date'] = pd.to_datetime(datadf['Date'])
         datadf.set_index('Date', inplace = True)
         ohlc = {
