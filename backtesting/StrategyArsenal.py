@@ -13,7 +13,6 @@ strategyArsenalFile = 'G:\\andyvoid\\data\\backtest_report\\strategy.csv'
 strategyArsenalWebviewFile = 'G:\\andyvoid\\data\\backtest_report\\webviews\\'
 strategyArsenalTradesFile = 'G:\\andyvoid\\data\\backtest_report\\backtest_trades\\'
 
-
 class StrategyArsenal() :
     
     def __init__(self) :

@@ -36,7 +36,7 @@ capitalAloc['9:20'] = 200000
 capitalAloc['11:30'] = 200000
 capitalAloc['1pm'] = 200000
 
-portfolioBuilder = pr.PortfolioReportBuilder(portforlioDic,capitalAloc, 600000)
+portfolioBuilder = pr.PortfolioReportBuilder(portforlioDic,capitalAloc, 3000000)
 builderDf, portfolioCum, portfolioMo, portfolioYe = portfolioBuilder.generate()
 
 #%%
