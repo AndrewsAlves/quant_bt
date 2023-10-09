@@ -22,9 +22,11 @@ bnfTickerDf = None
 """ THIS CELL IS TO GET BANKNIFTY OPTIONS DATABASE """
 
 def getBnfOptionsTickerDb() : 
-    df = pd.read_csv(path_bnfOptionsdb + "\\" + "BNF_TICKER_DB_2017_2023.csv")
-    df['Expiry Date'] = pd.to_datetime(df['Expiry Date'])
-    return df
+    global bnfTickerDf
+    if bnfTickerDf is None: 
+        bnfTickerDf = pd.read_csv(path_bnfOptionsdb + "\\" + "BNF_TICKER_DB_2017_2023.csv")
+    bnfTickerDf['Expiry Date'] = pd.to_datetime(bnfTickerDf['Expiry Date'])
+    return bnfTickerDf
 
 bnfOptionsTickerDb = getBnfOptionsTickerDb()
 

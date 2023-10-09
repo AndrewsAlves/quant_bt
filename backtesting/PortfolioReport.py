@@ -7,12 +7,15 @@ import numpy as np
 import datetime as dt
 from dateutil.relativedelta import relativedelta 
 from tabulate import tabulate
+from Utilities import StaticVariables as statics
 
 import plotly.express as pltEx
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 import plotly.io as pio
 from plotly.colors import n_colors
+
+path_bnfOptionsdb = "G:\\andyvoid\\data\\quotes\\csv_database\\banknifty\\options"
 
 
 def CumulativeCapital(lists, capital):
@@ -92,10 +95,32 @@ def generate_streak_info(shots):
     shots_with_streaks = pd.concat([shots, data['streak_counter']], axis=1)
     return shots_with_streaks
 
+def getOnlyExpiryDayTrades(tBook) : 
+    
+    bnfTickerDf = pd.read_csv(statics.path_bnfOptionsdb + "\\" + "BNF_TICKER_DB_2017_2023.csv")
+    bnfTickerDf['Expiry Date'] = pd.to_datetime(bnfTickerDf['Expiry Date'])
+    
+    tBook['Entry Time'] = pd.to_datetime(tBook['Entry Time'])
+    tBook['Exit Time'] = pd.to_datetime(tBook['Exit Time'])
+
+    expiryDayList = []
+    for i, row in tBook.iterrows() : 
+        Date = row['Entry Time'].replace(hour=0, minute=0)
+        if Date in bnfTickerDf['Expiry Date'].values:
+            expiryDayList.append("yes")
+        else : 
+            expiryDayList.append("no")
+        
+    tBook['expiry'] = pd.Series(expiryDayList)
+    tBook['day'] = tBook['Entry Time'].dt.day_name()
+    tBookOnlyExpiry = tBook[tBook['expiry'] == "yes"]
+
+    return tBookOnlyExpiry
+
 
 class PortfolioReportBuilder :
     
-    def __init__(self, portfolioDfDic, capitalAlocDic,totalCapital, year = None) : 
+    def __init__(self, portfolioDfDic, capitalAlocDic,totalCapital,onlyExpiry = False, year = None) : 
         self.portfolioDic = portfolioDfDic
         self.capitalAlocDic = capitalAlocDic
         self.porfolio = pd.DataFrame()
@@ -104,6 +129,7 @@ class PortfolioReportBuilder :
         self.portfolioYearly = pd.DataFrame()
         self.totalCapital = totalCapital
         self.year = year
+        self.onlyExpiry = onlyExpiry
         #self.startDate = startDate
         #self.endDate = endDate
 
@@ -112,6 +138,10 @@ class PortfolioReportBuilder :
         
         stgNameList = []
         for stgName,strategy in self.portfolioDic.items() :
+            
+            if self.onlyExpiry : 
+                strategy = getOnlyExpiryDayTrades(strategy)
+            
             stgNameList.append(stgName)
             capital = self.capitalAlocDic[stgName]
 
@@ -138,10 +168,9 @@ class PortfolioReportBuilder :
         self.porfolioStreaks['win_loss'] = np.sign(self.porfolio['Daily_Net_Pnl'])
         self.porfolioStreaks = self.porfolioStreaks[self.porfolioStreaks['win_loss'] != 0]
         self.porfolioStreaks = generate_streak_info(self.porfolioStreaks['win_loss'].to_frame())
-        self.positiveDayStreams = self.porfolioStreaks.query('win_loss > 0').max()
-        self.negativeDayStreams = self.porfolioStreaks.query('win_loss < 0').max()
+        self.positiveDayStreams = (self.porfolioStreaks.query('win_loss > 0')).max()
+        self.negativeDayStreams = (self.porfolioStreaks.query('win_loss < 0')).max()
 
-        
         self.portfolioDayWisePnl = self.porfolio.groupby(self.porfolio['Date'].dt.day_name()).sum()
 
         self.portfolioCum.reset_index(inplace= True)
@@ -225,7 +254,7 @@ class PortfolioReportBuilder :
         )
     
         # Plot the figure
-        #fig.show()
+        fig.show()
         
          #//////////////////////////////// CHART LAYOUT //////////////////
         
@@ -251,9 +280,9 @@ class PortfolioReportBuilder :
         
         figCharts.update_layout(title_text="Charts", autosize = True, height = 900*4)
         figCharts.update_xaxes(rangeslider=dict(visible=False)) 
-        #figCharts.show()
+        figCharts.show()
         
-        return self.negativeDayStreams, self.portfolioCum, self.portfolioMontly, self.portfolioYearly
+        return self.porfolio, self.portfolioCum, self.portfolioMontly, self.portfolioYearly
         
 
              

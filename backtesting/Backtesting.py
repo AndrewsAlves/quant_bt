@@ -19,6 +19,7 @@ import numpy as np
 import datetime as dt
 from dateutil.relativedelta import relativedelta 
 from tabulate import tabulate
+from Utilities import StaticVariables as statics
 
 import plotly.express as pltEx
 from plotly.subplots import make_subplots
@@ -28,7 +29,7 @@ from plotly.colors import n_colors
 
 pio.renderers.default='browser'
 
-tradeListPath = 'G:\\andyvoid\\data\\backtest_report\\backtest_trades\\' 
+
 
 def Cumulative(lists):
     cu_list = []
@@ -114,8 +115,8 @@ class TradeBook():
         
         
     def exportTradebookToCSV(self,fileId, strategyName) :
-        self.tradeBookDf.to_csv(tradeListPath + "\\" + fileId + "_" + strategyName + '.csv')
-        self.missingData.to_csv(tradeListPath + "\\" + fileId + "_MissingData.csv")
+        self.tradeBookDf.to_csv(statics.tradeListPath + "\\" + fileId + "_" + strategyName + '.csv')
+        self.missingData.to_csv(statics.tradeListPath + "\\" + fileId + "_MissingData.csv")
         
     def generateReport(self,StrategyName, capital) : 
         self.addAllTradertoDf()
@@ -238,8 +239,27 @@ def calculateProfitFactor(tBook) :
     loss = tBook['profit'].loc[tBook['profit'] < 0].sum()
     return wins / abs(loss)
 
-
+def getOnlyExpiryDayTrades(tBook) : 
     
+    bnfTickerDf = pd.read_csv(statics.path_bnfOptionsdb + "\\" + "BNF_TICKER_DB_2017_2023.csv")
+    bnfTickerDf['Expiry Date'] = pd.to_datetime(bnfTickerDf['Expiry Date'])
+    
+    tBook['Entry Time'] = pd.to_datetime(tBook['Entry Time'])
+    tBook['Exit Time'] = pd.to_datetime(tBook['Exit Time'])
+
+    expiryDayList = []
+    for i, row in tBook.iterrows() : 
+        Date = row['Entry Time'].replace(hour=0, minute=0)
+        if Date in bnfTickerDf['Expiry Date'].values:
+            expiryDayList.append("yes")
+        else : 
+            expiryDayList.append("no")
+        
+    tBook['expiry'] = pd.Series(expiryDayList)
+    tBook['day'] = tBook['Entry Time'].dt.day_name()
+    tBookOnlyExpiry = tBook[tBook['expiry'] == "yes"]
+
+    return tBookOnlyExpiry
         
 class BacktestReportBuilder :
     

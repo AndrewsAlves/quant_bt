@@ -10,13 +10,16 @@ from backtesting import PortfolioReport as pr
 
 backtestReportPath = "G:\\andyvoid\\data\\backtest_report\\"
 backtestReportTradesPath = "G:\\andyvoid\\data\\backtest_report\\backtest_trades\\"
+path_bnfOptionsdb = "G:\\andyvoid\\data\\quotes\\csv_database\\banknifty\\options"
+
 
 strategiesDf = pd.read_csv(backtestReportPath + "strategy.csv")
 #%%
 
 stg920 = pd.read_csv(backtestReportTradesPath  + 'e31c5b01_9 20 am dynamic SL 3M.csv')
-stg11 = pd.read_csv(backtestReportTradesPath  + 'a79384bf_11 30 am dynamic SL 3M.csv')
+stg11 = pd.read_csv(backtestReportTradesPath  + '7ae0f518_11 30 am dynamic SL 3M _new.csv')
 stg1pm = pd.read_csv(backtestReportTradesPath + '50b804a3_13 00 am dynamic SL 3M.csv')
+
 
 #%%
 portforlioDic = {}
@@ -30,5 +33,6 @@ capitalAloc['1pm'] = 1000000
 
 #%%
 
-portfolioBuilder = pr.PortfolioReportBuilder(portforlioDic,capitalAloc, 3000000)
+portfolioBuilder = pr.PortfolioReportBuilder(portforlioDic,capitalAloc, 3000000, onlyExpiry=True)
 builderDf, portfolioCum, portfolioMo, portfolioYe = portfolioBuilder.generate()
+

@@ -42,8 +42,8 @@ L = "Low"
 C = "Close"
 bnf_op_path = "G:\\andyvoid\data\quotes\After_cleaned\Banknifty\BNF_options"
 
-time_hour = 13
-time_min = 00
+time_hour = 11
+time_min = 25
 
 #%%
 
@@ -290,17 +290,17 @@ for i, row in tqdm(bnfResampled.iterrows(), desc = "Backtesting", total = bnfRes
 
 #%%
 
-tradesDf = tradeBook.generateReport("dynamicSL 13 00", capital)
+tradesDf = tradeBook.generateReport("dynamicSL 11 30", capital)
 
 
 #%%
 
 flag = {}
 flag['id'] = strategyAr.getNewStrategyId()
-flag['strategy_name'] = "13 00 am dynamic SL 3M"
+flag['strategy_name'] = "11 30 am dynamic SL 3M _new"
 flag['start_date'] = start_date
 flag['end_date'] = end_date
-flag['desc'] = "13 00 am short straddle with ATR 3 multiplied stoploss based on premium and Lot size based on adaptive position sizing based on points and Max size is based on capital"
+flag['desc'] = "11 30 am short straddle with ATR 3 multiplied stoploss based on premium and Lot size based on adaptive position sizing based on points and Max size is based on capital"
 flag['stars'] = 4
 
 #%%
