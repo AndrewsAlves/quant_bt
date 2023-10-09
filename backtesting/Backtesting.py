@@ -237,6 +237,8 @@ def calculateProfitFactor(tBook) :
     wins = tBook['profit'].loc[tBook['profit'] > 0].sum()
     loss = tBook['profit'].loc[tBook['profit'] < 0].sum()
     return wins / abs(loss)
+
+
     
         
 class BacktestReportBuilder :

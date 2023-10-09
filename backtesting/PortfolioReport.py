@@ -62,6 +62,37 @@ def calculateRunningDrawdownBasedInitialCapital(profit, capital = 3000000) :
     
     return Daily_Drawdown * 100
 
+def generate_streak_info(shots):
+    """
+    Parameters
+    ----------
+    
+    shots:
+        A dataframe containing data about shots.
+        Must contain a `results` column with two
+        unique values for made and missed shots.
+        Must be homogenous (contain only shots
+        that qualify for the streak type you want
+        to calculate (eg all FT for a single
+        player) and be pre-sorted by time.
+
+    Returns
+    -------
+
+    shots_with_streaks:
+        The original dataframe with a new column
+        `streak_counter` containing integers with 
+        counts for each streak.
+    """
+    
+    data = shots['win_loss'].to_frame()
+    data['start_of_streak'] = data['win_loss'].ne(data['win_loss'].shift())
+    data['streak_id'] = data.start_of_streak.cumsum()
+    data['streak_counter'] = data.groupby('streak_id').cumcount() + 1
+    shots_with_streaks = pd.concat([shots, data['streak_counter']], axis=1)
+    return shots_with_streaks
+
+
 class PortfolioReportBuilder :
     
     def __init__(self, portfolioDfDic, capitalAlocDic,totalCapital, year = None) : 
@@ -103,6 +134,16 @@ class PortfolioReportBuilder :
         self.porfolio['Daily_Net_Pnl'] = self.porfolio.sum(axis = 1)
         self.porfolio.reset_index(inplace = True)
         
+        self.porfolioStreaks = pd.DataFrame()
+        self.porfolioStreaks['win_loss'] = np.sign(self.porfolio['Daily_Net_Pnl'])
+        self.porfolioStreaks = self.porfolioStreaks[self.porfolioStreaks['win_loss'] != 0]
+        self.porfolioStreaks = generate_streak_info(self.porfolioStreaks['win_loss'].to_frame())
+        self.positiveDayStreams = self.porfolioStreaks.query('win_loss > 0').max()
+        self.negativeDayStreams = self.porfolioStreaks.query('win_loss < 0').max()
+
+        
+        self.portfolioDayWisePnl = self.porfolio.groupby(self.porfolio['Date'].dt.day_name()).sum()
+
         self.portfolioCum.reset_index(inplace= True)
         self.portfolioCum['Cum. Daily_Net_Pnl'] = pd.Series(CumulativeCapital(self.porfolio['Daily_Net_Pnl'].tolist(), self.totalCapital))
         self.portfolioCum = self.portfolioCum.fillna(method='ffill')
@@ -116,7 +157,7 @@ class PortfolioReportBuilder :
         
         self.portfolioMontly['Com. return per'] = self.portfolioMontly['Daily_Net_Pnl'] / (self.totalCapital / 100.0)
         self.portfolioYearly['Com. return per'] = self.portfolioYearly['Daily_Net_Pnl'] / (self.totalCapital / 100.0)
-    
+        
         if self.year != None :
             self.porfolio = self.porfolio.loc[self.porfolio['Date'].dt.year == self.year]
             self.portfolioCum = self.portfolioCum.loc[self.portfolioCum['Date'].dt.year == self.year]
@@ -184,7 +225,7 @@ class PortfolioReportBuilder :
         )
     
         # Plot the figure
-        fig.show()
+        #fig.show()
         
          #//////////////////////////////// CHART LAYOUT //////////////////
         
@@ -192,7 +233,7 @@ class PortfolioReportBuilder :
         runningDrawdownDf['drawdown'] = calculateRunningDrawdown(self.portfolioCum['Cum. Daily_Net_Pnl'])
         runningDrawdownDf['Date'] = self.portfolioCum['Date']
         
-        figCharts = make_subplots(rows=3, cols=1)
+        figCharts = make_subplots(rows=4, cols=1)
         figCharts.append_trace(go.Scatter(x=self.portfolioCum['Date'], y=self.portfolioCum['Cum. Daily_Net_Pnl'],
                     mode='lines+markers',
                     name='Cum. Profits'), row=1, col=1)
@@ -205,11 +246,14 @@ class PortfolioReportBuilder :
                     mode='lines+markers',
                     name='Daily PnL'), row=3, col=1)
         
-        figCharts.update_layout(title_text="Charts", autosize = True, height = 900*3)
-        figCharts.update_xaxes(rangeslider=dict(visible=False)) 
-        figCharts.show()
+        figCharts.append_trace(go.Bar(x = self.portfolioDayWisePnl.index, y = self.portfolioDayWisePnl['Daily_Net_Pnl'],
+                    name='Day wise total PnL'), row=4, col=1)
         
-        return self.porfolio, self.portfolioCum, self.portfolioMontly, self.portfolioYearly
+        figCharts.update_layout(title_text="Charts", autosize = True, height = 900*4)
+        figCharts.update_xaxes(rangeslider=dict(visible=False)) 
+        #figCharts.show()
+        
+        return self.negativeDayStreams, self.portfolioCum, self.portfolioMontly, self.portfolioYearly
         
 
              

@@ -33,7 +33,7 @@ strTimeformat = "%Y/%m/%d - %H:%M:%S"
 
 #start_date = '2017-01'
 #end_date = '2023-08'
-start_date = '2017-01'
+start_date = '2022-01'
 end_date = '2023-08'
 O = "Open"
 H = "High"
@@ -155,7 +155,7 @@ def getOptionsDf(datetime, strike, CEorPE) :
 tradeBook = bt.TradeBook()
 positions = {}
 priceTrackerDf = {}
-SLper = 25
+SLper = 40
 lotSize = 25
 slippage = 1
 qty = 50
@@ -191,7 +191,7 @@ for i, row in tqdm(bnfResampled.iterrows(), desc = "Backtesting", total = bnfRes
            
     strike = str(round(round(closeP,-2)))
     
-    if datentime.time().hour == 13 and datentime.time().minute == 25 :
+    if datentime.time().hour == 9 and datentime.time().minute == 20 :
         
         #print(tickerSymbol.upper())
         #print("execute straddle")
@@ -213,8 +213,43 @@ for i, row in tqdm(bnfResampled.iterrows(), desc = "Backtesting", total = bnfRes
 
        # print(datentime.time())
         
+    """ IF THE TIME IS 9:20 and ABOVE CHECK POSITIONS FOR STOPLOSS AND EXECUTE THE PENDING ORDER """  
+    datentimeCheck = datentime.replace(hour=9, minute=15)
+    if datentime >= datentimeCheck :
+        for tradeId in list(positions) :
+            trade = positions[tradeId]
+            
+            """ Check order status and execute the pending order"""
+            if trade.orderStatus == 0 and tradeId in priceTrackerDf : 
+                placeOrder(trade.symbol, priceTrackerDf[tradeId], datentime, SLper, qty, "short", tradeObj = trade, adaptivePs= True)
+                                
+            """ Check order status and track the SL price"""
+            if trade.orderStatus == 1 and tradeId in priceTrackerDf : 
+                
+                if not(datentime in priceTrackerDf[tradeId].index):
+                    print("Datatime not present")
+                    continue
+                    
+                slprice = trade.stopLossPrice
+                barHigh = priceTrackerDf[tradeId].loc(axis = 0)[datentime, "High"]
+                
+                
+
+
+                
+                if barHigh > slprice : 
+                    exitPrice = slprice + slippage
+                    trade.closePosition(datentime, "cover", exitPrice)
+                    
+                    positions.pop(tradeId)
+                    priceTrackerDf.pop(tradeId)
+                    
+                    tradeBook.addTrade(trade)
+                    
+                    
     """ CLOSE THE ALL POSITIONS IF TIME IS 15:10 and ABOVE"""    
-    if datentime.time().hour >= 15 and datentime.time().minute >= 10 and len(positions) != 0 :    
+    datentimeCheck = datentime.replace(hour=15, minute=10)
+    if datentime >= datentimeCheck and len(positions) != 0 :    
        # print("squared off positions")
         for tradeId in list(positions):
             trade = positions[tradeId]
@@ -238,33 +273,6 @@ for i, row in tqdm(bnfResampled.iterrows(), desc = "Backtesting", total = bnfRes
             priceTrackerDf.pop(tradeId)
             tradeBook.addTrade(trade)
         #print(datentime.time())
-        
-    """ IF THE TIME IS 9:20 and ABOVE CHECK POSITIONS FOR STOPLOSS AND EXECUTE THE PENDING ORDER """    
-    if datentime.time().hour >= 9 and datentime.time().minute > 15 :
-        for tradeId in list(positions) :
-            trade = positions[tradeId]
-            
-            """ Check order status and execute the pending order"""
-            if trade.orderStatus == 0 and tradeId in priceTrackerDf : 
-                placeOrder(trade.symbol, priceTrackerDf[tradeId], datentime, SLper, qty, "short", tradeObj = trade, adaptivePs= True)
-                                
-            """ Check order status and track the SL price"""
-            if trade.orderStatus == 1 and tradeId in priceTrackerDf : 
-                
-                if not(datentime in priceTrackerDf[tradeId].index):
-                    continue
-                    
-                slprice = trade.stopLossPrice
-                barHigh = priceTrackerDf[tradeId].loc(axis = 0)[datentime, "High"]
-                
-                if barHigh > slprice : 
-                    exitPrice = slprice + slippage
-                    trade.closePosition(datentime, "cover", exitPrice)
-                    
-                    positions.pop(tradeId)
-                    priceTrackerDf.pop(tradeId)
-                    
-                    tradeBook.addTrade(trade)
       
 
 #%%
