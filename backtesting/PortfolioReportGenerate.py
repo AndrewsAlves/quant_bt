@@ -16,20 +16,19 @@ path_bnfOptionsdb = "G:\\andyvoid\\data\\quotes\\csv_database\\banknifty\\option
 strategiesDf = pd.read_csv(backtestReportPath + "strategy.csv")
 #%%
 
-stg920 = pd.read_csv(backtestReportTradesPath  + 'e31c5b01_9 20 am dynamic SL 3M.csv')
-stg11 = pd.read_csv(backtestReportTradesPath  + '7ae0f518_11 30 am dynamic SL 3M _new.csv')
-stg1pm = pd.read_csv(backtestReportTradesPath + '50b804a3_13 00 am dynamic SL 3M.csv')
-
+stg920 = pd.read_csv(backtestReportTradesPath  + '10fc0fa1_9 20 Classic.csv')
+stg11 = pd.read_csv(backtestReportTradesPath  + 'c1985225_11 15 Classic.csv')
+stg1pm = pd.read_csv(backtestReportTradesPath + '935bcf46_1 15 Classic.csv')
 
 #%%
 portforlioDic = {}
 portforlioDic['9:20'] = stg920
-portforlioDic['11:30'] = stg11
-portforlioDic['1pm'] = stg1pm
+portforlioDic['11:15'] = stg11
+portforlioDic['1:15'] = stg1pm
 capitalAloc = {}
 capitalAloc['9:20'] = 1000000
-capitalAloc['11:30'] = 1000000
-capitalAloc['1pm'] = 1000000
+capitalAloc['11:15'] = 1000000
+capitalAloc['1:15'] = 1000000
 
 #%%
 

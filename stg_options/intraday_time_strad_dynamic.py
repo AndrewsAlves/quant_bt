@@ -72,7 +72,6 @@ slippage = 1
 qty = 50
 riskPerTrade = 1 # percentage of capital%
 capital = 1000000
-strategyAr = sa.StrategyArsenal()
 slPercentage = []
 
 
@@ -294,6 +293,8 @@ tradesDf = tradeBook.generateReport("dynamicSL 11 30", capital)
 
 
 #%%
+
+strategyAr = sa.StrategyArsenal()
 
 flag = {}
 flag['id'] = strategyAr.getNewStrategyId()

@@ -6,12 +6,10 @@ Created on Wed Aug 22 15:15:17 2022
 ### 920 STRADLE BACKTESTING BNF  ##########
 ###########################################
 
-
 @author: AndyAlves
 """
 #%%
 import pandas as pd
-import talib as ta
 import datetime as dt
 from tqdm import tqdm
 import math
@@ -33,7 +31,7 @@ strTimeformat = "%Y/%m/%d - %H:%M:%S"
 
 #start_date = '2017-01'
 #end_date = '2023-08'
-start_date = '2022-01'
+start_date = '2017-01'
 end_date = '2023-08'
 O = "Open"
 H = "High"
@@ -41,6 +39,8 @@ L = "Low"
 C = "Close"
 bnf_op_path = "G:\\andyvoid\data\quotes\After_cleaned\Banknifty\BNF_options"
 
+hour = 13
+minute = 15
 
 #%%
 
@@ -48,10 +48,20 @@ bnfResampled = csv_database.get_banknifty_data(start_date, end_date, tf_5Min)
 
 #%%
 
-""" 
+"""
 920 strategy and backtesting section 
 Time frame = 5m 
 """
+
+tradeBook = bt.TradeBook()
+positions = {}
+priceTrackerDf = {}
+SLper = 40
+lotSize = 25
+slippage = 1
+qty = 50
+riskPerTrade = 1 # percentage of capital%
+capital = 1000000
 
 dfTemp = pd.DataFrame()
 
@@ -72,7 +82,7 @@ def placeOrder(tickerSymbol, tickerDf, datetime, SLper, qty, tradeType, tradeObj
         print("\n Order execution pending, Dataframe None: " + tickerSymbol + " " , datetime)
     else :
         if datetime in tickerDf.index :
-            entryprice = tickerDf.loc(axis = 0)[datetime, "Close"]
+            entryprice = tickerDf.loc(axis = 0)[datetime, "Open"]
             sl = entryprice + (entryprice / 100) * SLper
             if adaptivePs : 
                 qty = Utils.getPositionsSizingForSelling(abs(sl - entryprice), ((capital / 100) * riskPerTrade), lotSize,capital, False)
@@ -152,24 +162,7 @@ def getOptionsDf(datetime, strike, CEorPE) :
     return tickerSymbol, df
 
     
-tradeBook = bt.TradeBook()
-positions = {}
-priceTrackerDf = {}
-SLper = 40
-lotSize = 25
-slippage = 1
-qty = 50
-riskPerTrade = 1 # percentage of capital%
-capital = 1000000
-strategyAr = sa.StrategyArsenal()
 
-flag = {}
-flag['id'] = strategyAr.getNewStrategyId()
-flag['strategy_name'] = "1 30 Am 25%"
-flag['start_date'] = start_date
-flag['end_date'] = end_date
-flag['desc'] = "1 30 am short straddle with 25% stoploss based on premium and Lot size based on adaptive position sizing based on points and Max size is based on capital"
-flag['stars'] = 3.0
 
 
 for i, row in tqdm(bnfResampled.iterrows(), desc = "Backtesting", total = bnfResampled.shape[0]): 
@@ -191,7 +184,7 @@ for i, row in tqdm(bnfResampled.iterrows(), desc = "Backtesting", total = bnfRes
            
     strike = str(round(round(closeP,-2)))
     
-    if datentime.time().hour == 9 and datentime.time().minute == 20 :
+    if datentime.time().hour == hour and datentime.time().minute == minute :
         
         #print(tickerSymbol.upper())
         #print("execute straddle")
@@ -276,8 +269,20 @@ for i, row in tqdm(bnfResampled.iterrows(), desc = "Backtesting", total = bnfRes
       
 
 #%%
+tradesDf = tradeBook.generateReport("13 15 40SL classic", capital)
 
-tradesDf = tradeBook.generateReport("1_30_25%SL", capital)
+
+#%%
+
+strategyAr = sa.StrategyArsenal()
+
+flag = {}
+flag['id'] = strategyAr.getNewStrategyId()
+flag['strategy_name'] = "13 15 40SL Classic"
+flag['start_date'] = start_date
+flag['end_date'] = end_date
+flag['desc'] = "13 15 am short straddle with 40% stoploss based on premium and Lot size based on adaptive position sizing based on points and Max size is based on capital"
+flag['stars'] = 3.5
 
 #%%
 stgId, strategies = strategyAr.addStrategy(flag, tradeBook)
