@@ -59,38 +59,12 @@ opdf = rawOpdf.copy(deep = True)
 #%%
 
 opdf["Date"] = opdf["Date"].astype(str) + '-' + opdf["Time"].astype(str).map(lambda x: str(x)[:-3])
-print(opdf.head())
-opdfError = opdf[opdf['Date'] == '12-01-2021-09:49']
-opdf.at[23661, 'Date'] = '20/07/2020-13:27'
-opdf.at[61424, 'Date'] = '20/07/2020-13:05'
-opdf.at[61597, 'Date'] = '20/07/2020-14:55'
-
-## 61597-- 20/07/2020-  14:55, 61424-- 20/07/2020-  13:05, 
-
 opdf['Date'] = pd.to_datetime(opdf["Date"], format = "%d/%m/%Y-%H:%M") ##errors = 'coerce')
-print(opdf.tail())
-
 #naT = opdf[opdf['Date2'].isnull()]
 opdf.drop(['Time'], inplace = True, axis = 1)
 
 #opdf.columns = opdf.columns.str.replace(' ', '')
 #opdf.rename(columns = {'Openinterest':'OpenInterest'}, inplace = True)
-#11300CE
-# opdfNew = pd.DataFrame()
-# opdfNew['Ticker'] = opdf['Ticker']
-# opdfNew['Date'] = opdf['Date']
-# opdfNew['Open'] = opdf[['Open', 'Open']].max(axis=1)
-# opdfNew['High'] = opdf[['High', 'High']].max(axis=1)
-# opdfNew['Low'] = opdf[['Low', 'Low']].max(axis=1)
-# opdfNew['Close'] = opdf[['Close', 'Close']].max(axis=1)
-# opdfNew['Volume'] = opdf[['Volume', 'Volume']].max(axis=1)
-opdf['Open Interest2'] = opdf[['Open Interest','Open Inerest', 'OpenInterest', 'Open interest']].max(axis=1)
-#opdf['Open Interest'] = opdf['Open Interest2']
-opdf.drop(['Open Interest','Open Inerest', 'OpenInterest', 'Open interest'], inplace = True, axis = 1)
-opdf['Open Interest'] = opdf['Open Interest2']
-opdf.drop(['Open Interest2'], inplace = True, axis = 1)
-
-
 #tickerDatabase = opdf["Ticker"].drop_duplicates(keep = 'first').to_frame()
 #isOptions = tickerDatabase["Ticker"].str.len() < 20
 #tickerDatabase.drop(isOptions[isOptions].index, inplace = True)
@@ -102,47 +76,11 @@ opdf.drop(['Open Interest2'], inplace = True, axis = 1)
 groupedOpdf = opdf.groupby("Ticker")
 group_names = list(groupedOpdf.groups.keys())
 
-#%%
 for ticker in tqdm(group_names):
     tickerDf = groupedOpdf.get_group(ticker)
     tickerDf.to_csv("G:\\andyvoid\\data\\quotes\\csv_database\\nifty\\options\\2021\\" + ticker + '.csv', index = False)
-
-
-
-
-
+    
 #%%
-#13-01-2021
-#14-01-2021
-#15-01-2021
-#18-01-2021
-#19-01-2021
-#20-01-2021
-#22-01-2021
-#28-01-2021
-#29-01-2021
-
-#01-02-2021
-#02-02-2021
-#03-02-2021
-#05-02-2021
-#09-02-2021
-#10-02-2021
-#11-02-2021
-#15-02-2021
-#17-02-2021
-#18-02-2021
-#23-02-2021
-#25-02-2021
-#26-02-2021
-
-#01-03-2021
-#02-02-2021
-#01-02-2021
-
-#25-06-2021
-
-
 """ THIS SECTION CLEANES THE SPECIFIED FILES FOR TGE RIGHT DATE TIME STRING FORMAT """
 mm_dd_df = pd.read_csv("G:\\andyvoid\\data\\quotes\\Archives\\After_cleaned\\Nifty\\options\\2021\\10\\NIFTY_NFO_BACKADJUSTED_12102021.csv")
 mm_dd_df["Date"] = pd.to_datetime(mm_dd_df["Date"], format= "%d-%m-%Y")

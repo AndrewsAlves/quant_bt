@@ -19,32 +19,29 @@ gdflNonDuplicate.to_csv("G:\\andyvoid\\data\\quotes\\csv_database\\banknifty\\in
 #%%
 datastorage = "G:\\andyvoid\\bhav"
 os.chdir(datastorage)
-startDate = dt.date(2023,1,1)
-endDate = dt.date(2023,9,21)
+startDate = dt.date(2019,1,1)
+endDate = dt.date(2019,12,31)
 wait_time = [1, 2]
 nse = bhavcopy("derivatives", startDate, endDate, datastorage, wait_time)
-
 nse.get_data()
 
 #%%
 bhavcopyDf = pd.read_csv("G:\\andyvoid\\bhav\\derivatives.csv")
 bhavgroupedDf = bhavcopyDf.groupby('SYMBOL')
-banknifty = bhavgroupedDf.get_group('BANKNIFTY')
 niftyDerivatives = bhavgroupedDf.get_group('NIFTY')
-banknifty.to_csv("G:\\andyvoid\\bhav\\banknifty_derivatives.csv", index= False)
-niftyDerivatives.to_csv("G:\\andyvoid\\bhav\\nifty_derivatives.csv", index= False)
+niftyDerivatives.to_csv("G:\\andyvoid\\bhav\\nifty_derivatives_2019.csv", index= False)
 #%%
-banknifty = pd.read_csv("G:\\andyvoid\\bhav\\banknifty_derivatives_2023.csv")
-banknifty['EXPIRY_DT'] = pd.to_datetime(banknifty['EXPIRY_DT'])
-banknifty['TIMESTAMP'] = pd.to_datetime(banknifty['TIMESTAMP'])
-banknifty2 = banknifty.loc[banknifty['EXPIRY_DT'] == banknifty['TIMESTAMP']]
-banknifty2.drop(['INSTRUMENT','OPEN','HIGH','LOW','CLOSE', 'SETTLE_PR','CONTRACTS','VAL_INLAKH','OPEN_INT','CHG_IN_OI'], axis=1, inplace=True)
-banknifty2.to_csv("G:\\andyvoid\\bhav\\banknifty_2023_CEPE_AllStrikes.csv", index= False)
+nifty = pd.read_csv("G:\\andyvoid\\bhav\\nifty_derivatives_2019.csv")
+nifty['EXPIRY_DT'] = pd.to_datetime(nifty['EXPIRY_DT'])
+nifty['TIMESTAMP'] = pd.to_datetime(nifty['TIMESTAMP'])
+nifty2 = nifty.loc[nifty['EXPIRY_DT'] == nifty['TIMESTAMP']]
+nifty2.drop(['INSTRUMENT','OPEN','HIGH','LOW','CLOSE', 'SETTLE_PR','CONTRACTS','VAL_INLAKH','OPEN_INT','CHG_IN_OI'], axis=1, inplace=True)
+nifty2.to_csv("G:\\andyvoid\\bhav\\nifty_2019_CEPE_AllStrikes.csv", index= False)
 #%% 
 
 """ ADD YEAR STRIKES AND EXPIRY DATE TO ALL STIRKE AND EXPIRIES DATABASE """
-allStrikesExpiry = pd.read_csv("G:\\andyvoid\\data\\quotes\\csv_database\\banknifty\\options\\BNF_TICKER_DB_2017_2022.csv")
-allStrikesDf = pd.read_csv("G:\\andyvoid\\bhav\\banknifty_2023_CEPE_AllStrikes.csv")
+allStrikesExpiry = pd.read_csv("G:\\andyvoid\\data\\quotes\\csv_database\\nifty\\options\\NIFTY_NFO_TICKER_DB_2019_2023.csv")
+allStrikesDf = pd.read_csv("G:\\andyvoid\\bhav\\nifty_2019_CEPE_AllStrikes.csv")
 allStrikesDf['expiry'] = pd.to_datetime(allStrikesDf['EXPIRY_DT'])
 allStrikesDf = allStrikesDf[allStrikesDf['STRIKE_PR'] != 0]
 allStrikesDf['Ticker'] = (allStrikesDf['SYMBOL'] + allStrikesDf['expiry'].dt.strftime("%d%b%y") + allStrikesDf['STRIKE_PR'].astype(int).astype(str) + allStrikesDf['OPTION_TYP']).str.upper()
@@ -54,7 +51,7 @@ allStrikesDf = allStrikesDf[['Ticker','Expiry Date']]
 allStrikesExpiry = allStrikesExpiry.append(allStrikesDf)
 allStrikesExpiry.sort_values(by='Expiry Date', inplace=True)
 #%%
-allStrikesExpiry.to_csv("G:\\andyvoid\\data\\quotes\\csv_database\\banknifty\\options\\BNF_TICKER_DB_2017_2023.csv", index= False)
+allStrikesExpiry.to_csv("G:\\andyvoid\\data\\quotes\\csv_database\\nifty\\options\\NIFTY_NFO_TICKER_DB_2019_2023.csv", index= False)
 
 
 

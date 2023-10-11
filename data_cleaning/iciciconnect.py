@@ -11,7 +11,6 @@ import urllib
 from tqdm import tqdm
 import time
 
-
 #%%
 APIKEY = "t34&7X948S606Z71P450eh6494517mXF"
 APISECREAT = "%97050082x4`R612K27S(96U890+1866"
@@ -26,7 +25,7 @@ webbrowser.open_new("https://api.icicidirect.com/apiuser/login?api_key="+urllib.
 
 # Generate Session
 #%%
-sessionCode = 22415491
+sessionCode = 23778255
 result = breeze.generate_session(api_secret=APISECREAT,session_token=sessionCode)
 print(result)
 
@@ -67,15 +66,15 @@ print(result)
 """ THIS SECTION IS TO RETRIVE ICICI BANK OPTIONS DATA """
 #Ticker or Instrument ,Date,Open,High,Low,Close,Volume,Open Interest
 
-allStrikesDf = pd.read_csv("G:\\andyvoid\\bhav\\banknifty_2023_CEPE_AllStrikes.csv")
+allStrikesDf = pd.read_csv("G:\\andyvoid\\data\\quotes\\bhav\\nifty_2022_CEPE_AllStrikes_traded_dates.csv")
 allStrikesDf['expiry'] = pd.to_datetime(allStrikesDf['EXPIRY_DT'])
 allStrikesDf = allStrikesDf[allStrikesDf['STRIKE_PR'] != 0]
 #%%
-instrument = "CNXBAN"
+instrument = "NIFTY"
 segment = ["cash","options"]
 exchage_code = ["NSE","NFO"]
 requestTimeOutSleep = 2
-completedIndex = 5687 - 1
+completedIndex = 101 - 1
 
 #%%
 ## This block is to get only the specified file
@@ -101,10 +100,11 @@ completedIndex = 0
 
 for i, row in tqdm(allStrikesDf.iterrows(), desc = "Backtesting", total = allStrikesDf.shape[0]): 
     
+    
     if i <= completedIndex:
         continue
     
-    if i > 6728 :
+    if i > 11010 :
         break
     
     print ('Index' + str(i))
@@ -116,7 +116,8 @@ for i, row in tqdm(allStrikesDf.iterrows(), desc = "Backtesting", total = allStr
     else :
         option = 'put'
     strike = row['STRIKE_PR']
-    
+    daysTradedList = row['DaysTraded']
+
     daysLookBack = 100
     startDate  = expiry - timedelta(days=100)
     endDate  = startDate + timedelta(1)
@@ -174,10 +175,10 @@ for i, row in tqdm(allStrikesDf.iterrows(), desc = "Backtesting", total = allStr
     priceDf = priceDf[['Instrument','Date','Open','High','Low','Close','Volume','OpenInterest']]
     priceDf = priceDf.reset_index()
     priceDf.drop(['index'], axis=1, inplace = True)
-    priceDf['Instrument'] = "BANKNIFTY"
+    priceDf['Instrument'] = "NIFTY"
     #print(priceDf['Date'].iloc[-1])
     fileName = row['SYMBOL'] + expiry.strftime("%d%b%y") + str(int(strike)) + row['OPTION_TYP']
-    priceDf.to_csv("G:\\andyvoid\\data\quotes\\csv_database\\banknifty\\options\\2023\\" + fileName.upper() +".csv", index= False)
+    priceDf.to_csv("G:\\andyvoid\\data\quotes\\csv_database\\nifty\\options\\2022\\" + fileName.upper() +".csv", index= False)
 
     completedIndex = i
     
