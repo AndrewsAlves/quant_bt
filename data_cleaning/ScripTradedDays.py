@@ -64,8 +64,15 @@ for index, row in tqdm(niftyOptionTickers.iterrows(), desc = "Scanning...", tota
     tickerTradedDayList.append(tickerDays)
     
 #%%
+dummy = tickerTradedDayList.copy()
+#%%
+for item in dummy:
+    for idx , date in enumerate(item):
+        item[idx] = date.strftime("%Y-%m-%d") 
+        
+#%%
     
-niftyOptionTickers['DaysTraded'] = tickerTradedDayList
+niftyOptionTickers['DaysTraded'] = dummy
 niftyOptionTickers.to_csv("G:\\andyvoid\\data\\quotes\\bhav\\nifty_2022_CEPE_AllStrikes_traded_dates.csv", index = False)
 
             

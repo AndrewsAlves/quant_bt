@@ -10,6 +10,7 @@ import webbrowser
 import urllib
 from tqdm import tqdm
 import time
+from ast import literal_eval
 
 #%%
 APIKEY = "t34&7X948S606Z71P450eh6494517mXF"
@@ -74,7 +75,7 @@ instrument = "NIFTY"
 segment = ["cash","options"]
 exchage_code = ["NSE","NFO"]
 requestTimeOutSleep = 2
-completedIndex = 101 - 1
+completedIndex = 10456 - 1
 
 #%%
 ## This block is to get only the specified file
@@ -117,17 +118,21 @@ for i, row in tqdm(allStrikesDf.iterrows(), desc = "Backtesting", total = allStr
         option = 'put'
     strike = row['STRIKE_PR']
     daysTradedList = row['DaysTraded']
-
-    daysLookBack = 100
-    startDate  = expiry - timedelta(days=100)
-    endDate  = startDate + timedelta(1)
-    startDate = startDate.replace(hour = 9, minute = 0, second = 0)
-    endDate = endDate.replace(hour = 15, minute = 35, second = 0)
+    daysTradedList = literal_eval(daysTradedList)
+    #daysLookBack = 100
+    #startDate  = expiry - timedelta(days=100)
+    #endDate  = startDate + timedelta(1)
+    #startDate = startDate.replace(hour = 9, minute = 0, second = 0)
+    #endDate = endDate.replace(hour = 15, minute = 35, second = 0)
     
-    days = range(53)
+    #days = range(53)
     #for i in tqdm(days, desc="Retriving data", total = len(days)) :
-    for i in days :    
+    for date in daysTradedList :
+        print(date)
         requestTimeOut = True
+        startDate = datetime.strptime(date,"%Y-%m-%d")
+        startDate = startDate.replace(hour = 9, minute = 0, second = 0)
+        endDate = startDate.replace(hour = 15, minute = 35, second = 0)
         
         while requestTimeOut :
             try :
@@ -155,8 +160,8 @@ for i, row in tqdm(allStrikesDf.iterrows(), desc = "Backtesting", total = allStr
             priceDf = priceDf.append(daf)
     
         # Increment the date by one day.
-        startDate = startDate + timedelta(days=2)
-        endDate = endDate + timedelta(days=2)
+        #startDate = startDate + timedelta(days=2)
+        #endDate = endDate + timedelta(days=2)
         
     if priceDf.empty:
         continue
