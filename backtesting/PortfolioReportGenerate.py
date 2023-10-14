@@ -16,22 +16,24 @@ path_bnfOptionsdb = "G:\\andyvoid\\data\\quotes\\csv_database\\banknifty\\option
 strategiesDf = pd.read_csv(backtestReportPath + "strategy.csv")
 #%%
 
-stg920 = pd.read_csv(backtestReportTradesPath  + '10fc0fa1_9 20 Classic.csv')
-stg11 = pd.read_csv(backtestReportTradesPath  + 'c1985225_11 15 Classic.csv')
-stg1pm = pd.read_csv(backtestReportTradesPath + '935bcf46_1 15 Classic.csv')
+stg920 = pd.read_csv(backtestReportTradesPath  + '615718df_Nifty 9 20 25 SL Classic.csv')
+stg11 = pd.read_csv(backtestReportTradesPath  + '90aa6b50_Nifty 11 15 25 SL Classic.csv')
+stg1pm = pd.read_csv(backtestReportTradesPath + '5f50a886_Nifty 13 15 25 SL Classic.csv')
+#bnfstg920 = pd.read_csv(backtestReportTradesPath  + '10fc0fa1_9 20 Classic.csv')
+#bnfstg11 = pd.read_csv(backtestReportTradesPath  + 'c1985225_11 15 Classic.csv')
+#bnfstg1pm = pd.read_csv(backtestReportTradesPath + '935bcf46_1 15 Classic.csv')
 
 #%%
 portforlioDic = {}
-portforlioDic['9:20'] = stg920
-portforlioDic['11:15'] = stg11
-portforlioDic['1:15'] = stg1pm
-capitalAloc = {}
-capitalAloc['9:20'] = 1000000
-capitalAloc['11:15'] = 1000000
-capitalAloc['1:15'] = 1000000
+portforlioDic['NIFTY_9:20'] = pr.getStrategyDic('NIFTY_9:20', 'NIFTY', stg920, 1000000 )
+portforlioDic['NIFTY_11:15'] = pr.getStrategyDic('NIFTY_11:15', 'NIFTY', stg11, 1000000 )
+portforlioDic['NIFTY_1:15'] = pr.getStrategyDic('NIFTY_1:15', 'NIFTY', stg1pm, 1000000 )
+#portforlioDic['BANKNIFTY_9:20'] = pr.getStrategyDic('BANKNIFTY_9:20', 'BANKNIFTY', bnfstg920, 1000000 )
+#portforlioDic['BANKNIFTY_11:15'] = pr.getStrategyDic('BANKNIFTY_11:15', 'BANKNIFTY', bnfstg11, 1000000 )
+#portforlioDic['BANKNIFTY_1:15'] = pr.getStrategyDic('BANKNIFTY_1:15', 'BANKNIFTY', bnfstg1pm, 1000000 )
 
 #%%
 
-portfolioBuilder = pr.PortfolioReportBuilder(portforlioDic,capitalAloc, 3000000, onlyExpiry=True)
+portfolioBuilder = pr.PortfolioReportBuilder(portforlioDic, 3000000, onlyExpiry = True)
 builderDf, portfolioCum, portfolioMo, portfolioYe = portfolioBuilder.generate()
 

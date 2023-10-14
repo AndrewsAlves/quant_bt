@@ -83,9 +83,9 @@ def getPositionsSizing(stoplossPoints, risk_per_trade, lotSize, debug = True) :
     #print("Position size:", position_size)
     return position_size
 
-def getPositionsSizingForSelling(stoplossPoints, risk_per_trade, lotSize, capital = 100000, debug = True) :
+def getPositionsSizingForSelling(stoplossPoints, risk_per_trade, lotSize, marginPerLot = 100000, capital = 100000, debug = True) :
 
-    maxPosPosible = (capital / 100000) * lotSize
+    maxPosPosible = (capital / marginPerLot) * lotSize
     maxPosPosible = (int(maxPosPosible) // lotSize) * lotSize
     
     if debug :

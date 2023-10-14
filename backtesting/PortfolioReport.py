@@ -95,10 +95,10 @@ def generate_streak_info(shots):
     shots_with_streaks = pd.concat([shots, data['streak_counter']], axis=1)
     return shots_with_streaks
 
-def getOnlyExpiryDayTrades(tBook) : 
+def getOnlyExpiryDayTrades(tBook, symbol) : 
     
-    bnfTickerDf = pd.read_csv(statics.path_bnfOptionsdb + "\\" + "BNF_TICKER_DB_2017_2023.csv")
-    bnfTickerDf['Expiry Date'] = pd.to_datetime(bnfTickerDf['Expiry Date'])
+    symbolDf = pd.read_csv(statics.path_db + "\\" + symbol + "\\options\\" + "option_symbols.csv")
+    symbolDf['Expiry Date'] = pd.to_datetime(symbolDf['Expiry Date'])
     
     tBook['Entry Time'] = pd.to_datetime(tBook['Entry Time'])
     tBook['Exit Time'] = pd.to_datetime(tBook['Exit Time'])
@@ -106,7 +106,7 @@ def getOnlyExpiryDayTrades(tBook) :
     expiryDayList = []
     for i, row in tBook.iterrows() : 
         Date = row['Entry Time'].replace(hour=0, minute=0)
-        if Date in bnfTickerDf['Expiry Date'].values:
+        if Date in symbolDf['Expiry Date'].values:
             expiryDayList.append("yes")
         else : 
             expiryDayList.append("no")
@@ -117,12 +117,19 @@ def getOnlyExpiryDayTrades(tBook) :
 
     return tBookOnlyExpiry
 
+def getStrategyDic(name,symbol, stgDf, capitalAllocated) :
+    strategy = {}
+    strategy['name'] = name
+    strategy['symbol'] = symbol
+    strategy['tbook'] = stgDf
+    strategy['capital'] = capitalAllocated
+    return strategy
+
 
 class PortfolioReportBuilder :
     
-    def __init__(self, portfolioDfDic, capitalAlocDic,totalCapital,onlyExpiry = False, year = None) : 
-        self.portfolioDic = portfolioDfDic
-        self.capitalAlocDic = capitalAlocDic
+    def __init__(self, portfolioDic, totalCapital, onlyExpiry = False, year = None) : 
+        self.portfolioDic = portfolioDic
         self.porfolio = pd.DataFrame()
         self.portfolioCum = pd.DataFrame()
         self.portfolioMontly = pd.DataFrame()
@@ -137,13 +144,16 @@ class PortfolioReportBuilder :
     def generate(self) :
         
         stgNameList = []
-        for stgName,strategy in self.portfolioDic.items() :
+        for stgName,strategyDic in self.portfolioDic.items() :
+            
+            strategy = strategyDic['tbook']
+            symbol = strategyDic['symbol']
             
             if self.onlyExpiry : 
-                strategy = getOnlyExpiryDayTrades(strategy)
+                strategy = getOnlyExpiryDayTrades(strategy, symbol)
             
             stgNameList.append(stgName)
-            capital = self.capitalAlocDic[stgName]
+            capital = strategyDic['capital']
 
             strategy['Entry Time'] = pd.to_datetime(strategy['Entry Time'])
             strategy['Exit Time'] = pd.to_datetime(strategy['Exit Time'])
