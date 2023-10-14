@@ -34,15 +34,15 @@ strTimeformat = "%Y/%m/%d - %H:%M:%S"
 
 #start_date = '2017-01'
 #end_date = '2023-08'
-start_date = '2021-1'
+start_date = '2022-1'
 end_date = '2023-08'
 O = "Open"
 H = "High"
 L = "Low"
 C = "Close"
 
-hour = 9
-minute = 20
+hour = 13
+minute = 15
 
 #%%
 csvDatabase = CsvDatabase(LocalCsvDatabase.FINNIFTY)
@@ -60,12 +60,13 @@ positions = {}
 priceTrackerDf = {}
 SLper = 25
 lotSize = 40
-strikeDiff = 50
+strikeDiff = 100
 slippage = 1
 qty = 50
 riskPerTrade = 1 # percentage of capital%
 capital = 1000000
 marginPerLot = 110000
+circular4402 = dt.datetime(2022,10,18)
 
 dfTemp = pd.DataFrame()
 
@@ -173,7 +174,7 @@ def getstrikeFromLtp(ltp) :
     return strikeDiff * round(ltp // strikeDiff)
 
 for i, row in tqdm(bnfResampled.iterrows(), desc = "Backtesting", total = bnfResampled.shape[0]): 
-       
+    
     datentime = row["Date"]
     onlyDate = dt.datetime(datentime.date().year, datentime.date().month, datentime.date().day)
     openP = row["Open"]
@@ -181,6 +182,10 @@ for i, row in tqdm(bnfResampled.iterrows(), desc = "Backtesting", total = bnfRes
     lowP = row["Low"]
     closeP = row["Close"]
     expiryday = False
+    
+    if datentime >= circular4402 : 
+        print("Changed strike interval")
+        strikeDiff = 50
     
     if i > 0 and datentime.date().day != bnfResampled.loc[i-1,"Date"].day: newday = True
     else : newday = False
@@ -269,7 +274,7 @@ for i, row in tqdm(bnfResampled.iterrows(), desc = "Backtesting", total = bnfRes
       
 
 #%%
-tradesDf = tradeBook.generateReport("Nifty 13 15 25SL classic", capital)
+tradesDf, report, dailyReturn = tradeBook.generateReport("FINNIFTY","finnifty 9 20 25SL classic", capital, onlyExpiryDays = False)
 
 #%%
 
@@ -277,11 +282,11 @@ strategyAr = sa.StrategyArsenal()
 
 flag = {}
 flag['id'] = strategyAr.getNewStrategyId()
-flag['strategy_name'] = "finNifty 9 20 25 SL Classic"
+flag['strategy_name'] = "finNifty 13 15 25 SL Classic"
 flag['start_date'] = start_date
 flag['end_date'] = end_date
 flag['desc'] = "13 15 am short straddle with 25% stoploss based on premium and Lot size based on adaptive position sizing based on points and Max size is based on capital"
-flag['stars'] = 1
+flag['stars'] = 2
 
 #%%
 stgId, strategies = strategyAr.addStrategy(flag, tradeBook)
