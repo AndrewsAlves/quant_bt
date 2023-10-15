@@ -118,11 +118,13 @@ class TradeBook():
         self.tradeBookDf.to_csv(statics.tradeListPath + "\\" + fileId + "_" + strategyName + '.csv')
         self.missingData.to_csv(statics.tradeListPath + "\\" + fileId + "_MissingData.csv")
         
-    def generateReport(self,StrategyName, capital) : 
+    def generateReport(self,symbol, StrategyName, capital, onlyExpiryDays = False) : 
         self.addAllTradertoDf()
-        btreprotBuilder = BacktestReportBuilder(StrategyName, btTradeBook = self.tradeBookDf, startCapital = capital)
+        btreprotBuilder = BacktestReportBuilder(symbol, StrategyName, btTradeBook = self.tradeBookDf, 
+                                                startCapital = capital, 
+                                                onlyExpiryDays = onlyExpiryDays)
         report, dailyReturn, monthlyReturn, yeatlyReturnDf = btreprotBuilder.buildReport()
-        return self.tradeBookDf
+        return self.tradeBookDf, report, dailyReturn
         
         
 class Trade():
@@ -239,10 +241,10 @@ def calculateProfitFactor(tBook) :
     loss = tBook['profit'].loc[tBook['profit'] < 0].sum()
     return wins / abs(loss)
 
-def getOnlyExpiryDayTrades(tBook) : 
+def getOnlyExpiryDayTrades(tBook, symbol) : 
     
-    bnfTickerDf = pd.read_csv(statics.path_bnfOptionsdb + "\\" + "BNF_TICKER_DB_2017_2023.csv")
-    bnfTickerDf['Expiry Date'] = pd.to_datetime(bnfTickerDf['Expiry Date'])
+    symbolDf = pd.read_csv(statics.path_db + "\\" + symbol + "\\options\\" + "option_symbols.csv")
+    symbolDf['Expiry Date'] = pd.to_datetime(symbolDf['Expiry Date'])
     
     tBook['Entry Time'] = pd.to_datetime(tBook['Entry Time'])
     tBook['Exit Time'] = pd.to_datetime(tBook['Exit Time'])
@@ -250,7 +252,7 @@ def getOnlyExpiryDayTrades(tBook) :
     expiryDayList = []
     for i, row in tBook.iterrows() : 
         Date = row['Entry Time'].replace(hour=0, minute=0)
-        if Date in bnfTickerDf['Expiry Date'].values:
+        if Date in symbolDf['Expiry Date'].values:
             expiryDayList.append("yes")
         else : 
             expiryDayList.append("no")
@@ -305,11 +307,13 @@ class BacktestReportBuilder :
      
     """
     
-    def __init__(self,strategyName, btTradeBook = None, startCapital = 200000, compoundProfits = False):
+    def __init__(self,symbol,strategyName, btTradeBook = None, startCapital = 200000, compoundProfits = False, onlyExpiryDays = False):
+        self.symbol = symbol
         self.strategyName = strategyName
         self.btTradeBook = btTradeBook
         self.startCapital = startCapital
         self.compoundProfits = compoundProfits
+        self.onlyExpiryDays = onlyExpiryDays
         
     
     def buildReport(self):
@@ -319,6 +323,9 @@ class BacktestReportBuilder :
         if tBook.empty:
             print("No trade to backtest!")
             return
+        
+        if self.onlyExpiryDays : 
+            tBook = getOnlyExpiryDayTrades(tBook, self.symbol)
         
         tBook['Entry Time'] = pd.to_datetime(tBook['Entry Time'])
         tBook['Exit Time'] = pd.to_datetime(tBook['Exit Time'])
@@ -360,7 +367,8 @@ class BacktestReportBuilder :
         
         dailyReturnsDf = dateAndProfitDf.groupby(pd.Grouper(key='Date', axis=0, freq='D')).sum()
         dailyReturnsDf['Cum. profits'] = dateAndProfitDf[['Date','Cum. profits']].groupby(pd.Grouper(key='Date', axis=0, freq='D')).last()
-        
+
+
         monthlyReturnsDf = dateAndProfitDf.groupby(pd.Grouper(key='Date', axis=0, freq='M')).sum()
         monthlyReturnsDf['Cum. profits'] = dateAndProfitDf[['Date','Cum. profits']].groupby(pd.Grouper(key='Date', axis=0, freq='M')).last()
 
