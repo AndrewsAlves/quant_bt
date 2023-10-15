@@ -41,7 +41,7 @@ H = "High"
 L = "Low"
 C = "Close"
 
-hour = 13
+hour = 11
 minute = 15
 
 #%%
@@ -234,6 +234,7 @@ for i, row in tqdm(bnfResampled.iterrows(), desc = "Backtesting", total = bnfRes
             """ Check order status and track the SL price"""
             if trade.orderStatus == 1 and tradeId in priceTrackerDf : 
                 
+                
                 if not(datentime in priceTrackerDf[tradeId].index):
                     print("Datatime not present")
                     continue
@@ -274,7 +275,8 @@ for i, row in tqdm(bnfResampled.iterrows(), desc = "Backtesting", total = bnfRes
       
 
 #%%
-tradesDf, report, dailyReturn = tradeBook.generateReport("FINNIFTY","finnifty 9 20 25SL classic", capital, onlyExpiryDays = False)
+#daysList = ['Monday', 'Tuesday']
+tradesDf, report, dailyReturn = tradeBook.generateReport("FINNIFTY","finnifty 9 20 25SL classic", capital , ['Monday', 'Tuesday'])
 
 #%%
 
@@ -282,11 +284,11 @@ strategyAr = sa.StrategyArsenal()
 
 flag = {}
 flag['id'] = strategyAr.getNewStrategyId()
-flag['strategy_name'] = "finNifty 13 15 25 SL Classic"
+flag['strategy_name'] = "Finnifty 11 15 25 SL Classic"
 flag['start_date'] = start_date
 flag['end_date'] = end_date
-flag['desc'] = "13 15 am short straddle with 25% stoploss based on premium and Lot size based on adaptive position sizing based on points and Max size is based on capital"
-flag['stars'] = 2
+flag['desc'] = "11 15 am short straddle with 25% stoploss based on premium and Lot size based on adaptive position sizing based on points and Max size is based on capital"
+flag['stars'] = 3
 
 #%%
 stgId, strategies = strategyAr.addStrategy(flag, tradeBook)

@@ -117,18 +117,62 @@ def getOnlyExpiryDayTrades(tBook, symbol) :
 
     return tBookOnlyExpiry
 
-def getStrategyDic(name,symbol, stgDf, capitalAllocated) :
+def getOnlyTheDays(tBook, dayList = []) : 
+    
+    daysDf = None
+    portfolioDayWise = tBook.groupby(tBook['Entry Time'].dt.day_name())
+    
+    for day in dayList : 
+        dayDf = portfolioDayWise.get_group(day)
+        if daysDf is None :
+            daysDf = dayDf
+        else :
+            daysDf =  pd.concat([daysDf, dayDf])
+                    
+    daysDf['Entry Time'] = pd.to_datetime(daysDf['Entry Time'])
+    daysDf['Exit Time'] = pd.to_datetime(daysDf['Exit Time'])        
+
+    daysDf = daysDf.sort_values(by = 'Entry Time', axis=0, ascending=True)
+    daysDf.reset_index(inplace = True)
+    daysDf = daysDf.drop('index', axis=1)
+    
+    return daysDf
+
+def getOnlyTheDays(tBook, dayList = []) : 
+    
+    daysDf = None
+    portfolioDayWise = tBook.groupby(tBook['Entry Time'].dt.day_name())
+    
+    for day in dayList : 
+        dayDf = portfolioDayWise.get_group(day)
+        if daysDf is None :
+            daysDf = dayDf
+        else :
+            daysDf =  pd.concat([daysDf, dayDf])
+                    
+    daysDf['Entry Time'] = pd.to_datetime(daysDf['Entry Time'])
+    daysDf['Exit Time'] = pd.to_datetime(daysDf['Exit Time'])        
+
+    daysDf = daysDf.sort_values(by = 'Entry Time', axis=0, ascending=True)
+    daysDf.reset_index(inplace = True)
+    daysDf = daysDf.drop('index', axis=1)
+    
+    return daysDf
+
+def getStrategyDic(name,symbol, stgDf, capitalAllocated, daysList = [], onlyExpiryDays = False) :
     strategy = {}
     strategy['name'] = name
     strategy['symbol'] = symbol
     strategy['tbook'] = stgDf
     strategy['capital'] = capitalAllocated
+    strategy['daysList'] = daysList
+    strategy['onlyExpiryDay'] = onlyExpiryDays
     return strategy
 
 
 class PortfolioReportBuilder :
     
-    def __init__(self, portfolioDic, totalCapital, onlyExpiry = False, year = None) : 
+    def __init__(self, portfolioDic, totalCapital, year = None) : 
         self.portfolioDic = portfolioDic
         self.porfolio = pd.DataFrame()
         self.portfolioCum = pd.DataFrame()
@@ -136,7 +180,7 @@ class PortfolioReportBuilder :
         self.portfolioYearly = pd.DataFrame()
         self.totalCapital = totalCapital
         self.year = year
-        self.onlyExpiry = onlyExpiry
+        #self.onlyExpiry = onlyExpiry
         #self.startDate = startDate
         #self.endDate = endDate
 
@@ -148,9 +192,15 @@ class PortfolioReportBuilder :
             
             strategy = strategyDic['tbook']
             symbol = strategyDic['symbol']
+            onlyExpiry = strategyDic['onlyExpiryDay']
+            daysList = strategyDic['daysList']
             
-            if self.onlyExpiry : 
-                strategy = getOnlyExpiryDayTrades(strategy, symbol)
+            if len(daysList) == 0 :
+             if onlyExpiry : 
+                 strategy = getOnlyExpiryDayTrades(strategy, symbol)
+            else :
+                 strategy = getOnlyTheDays(strategy, daysList)
+                
             
             stgNameList.append(stgName)
             capital = strategyDic['capital']

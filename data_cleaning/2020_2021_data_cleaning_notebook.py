@@ -135,7 +135,49 @@ vixRaw['Date'] = pd.to_datetime(vixRaw["Date"], format = "%b %d %Y %H:%M:%S")
 vixRaw.to_csv("G:\\andyvoid\\data\\quotes\\csv_database\\india_vix\\INDIA_VIX_2010_2023_cleaned.csv", index= False)
 
 #%%
+#### CLEANING THE CSV GUY FILES
+finniftyFiles = os.listdir('G:\\andyvoid\\data\\quotes\\csv guy\\Finnifty')
 
+for file in tqdm(finniftyFiles, desc="Reading Options data") :
+    df = pd.read_csv('G:\\andyvoid\\data\\quotes\\csv guy\\Finnifty\\' + file)
+    df['Ticker'] = df['<ticker>']
+    df["Date"] = df["<date>"].astype(str) + '-' + df["<time>"].astype(str)
+    df['Date'] = pd.to_datetime(df["Date"], format = "%m/%d/%Y-%H:%M:%S")
+    df['Open'] = df['<open>']
+    df['High'] = df['<high>']
+    df['Low'] = df['<low>']
+    df['Close'] = df['<close>']
+    df['Volume'] = df['<volume>']
+    df['OpenInterest'] = df['<o/i> ']
+    df.drop(['<ticker>','<date>','<time>','<open>','<high>','<low>','<close>','<volume>','<o/i> '], inplace = True, axis = 1)
+    df.to_csv("G:\\andyvoid\\data\\quotes\\csv guy\\changed\\" + file, index = False)
+    
+#%%
+finniftyFiles = os.listdir('G:\\andyvoid\\data\\quotes\\csv guy\\changed')
+
+for file in tqdm(finniftyFiles, desc="Reading Options data") :
+    
+    strike = file[14:-4:1]
+    expiryDate = file[8:-11:1]
+    print(expiryDate)
+    expiryDate = dt.datetime.strptime(expiryDate, '%y%m%d')
+    expiryDate = expiryDate.strftime('%d%b%y')
+    ticker= 'FINNIFTY' + expiryDate + strike
+    print(ticker)
+
+    df = pd.read_csv('G:\\andyvoid\\data\\quotes\\csv guy\\Finnifty\\' + file)
+    df['<ticker>'] = ticker.upper()
+    df['Ticker'] = df['<ticker>']
+    df["Date"] = df["<date>"].astype(str) + '-' + df["<time>"].astype(str)
+    df['Date'] = pd.to_datetime(df["Date"], format = "%m/%d/%Y-%H:%M:%S")
+    df['Open'] = df['<open>']
+    df['High'] = df['<high>']
+    df['Low'] = df['<low>']
+    df['Close'] = df['<close>']
+    df['Volume'] = df['<volume>']
+    df['OpenInterest'] = df['<o/i> ']
+    df.drop(['<ticker>','<date>','<time>','<open>','<high>','<low>','<close>','<volume>','<o/i> '], inplace = True, axis = 1)
+    df.to_csv("G:\\andyvoid\\data\\quotes\\csv guy\\changed2\\" + ticker.upper() + '.csv', index = False)
 
 
 

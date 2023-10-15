@@ -118,13 +118,14 @@ class TradeBook():
         self.tradeBookDf.to_csv(statics.tradeListPath + "\\" + fileId + "_" + strategyName + '.csv')
         self.missingData.to_csv(statics.tradeListPath + "\\" + fileId + "_MissingData.csv")
         
-    def generateReport(self,symbol, StrategyName, capital, onlyExpiryDays = False) : 
+    def generateReport(self,symbol, StrategyName, capital, daysList = [], onlyExpiryDays = False) : 
         self.addAllTradertoDf()
         btreprotBuilder = BacktestReportBuilder(symbol, StrategyName, btTradeBook = self.tradeBookDf, 
                                                 startCapital = capital, 
+                                                daysList = daysList,
                                                 onlyExpiryDays = onlyExpiryDays)
         report, dailyReturn, monthlyReturn, yeatlyReturnDf = btreprotBuilder.buildReport()
-        return self.tradeBookDf, report, dailyReturn
+        return report, report, dailyReturn
         
         
 class Trade():
@@ -260,8 +261,33 @@ def getOnlyExpiryDayTrades(tBook, symbol) :
     tBook['expiry'] = pd.Series(expiryDayList)
     tBook['day'] = tBook['Entry Time'].dt.day_name()
     tBookOnlyExpiry = tBook[tBook['expiry'] == "yes"]
+    
+    tBookOnlyExpiry.reset_index(inplace = True)
+    tBookOnlyExpiry = tBookOnlyExpiry.drop('index', axis=1)
 
     return tBookOnlyExpiry
+
+def getOnlyTheDays(tBook, dayList = []) : 
+    
+    daysDf = None
+    portfolioDayWise = tBook.groupby(tBook['Entry Time'].dt.day_name())
+    
+    for day in dayList : 
+        dayDf = portfolioDayWise.get_group(day)
+        if daysDf is None :
+            daysDf = dayDf
+        else :
+            daysDf =  pd.concat([daysDf, dayDf])
+                    
+    daysDf['Entry Time'] = pd.to_datetime(daysDf['Entry Time'])
+    daysDf['Exit Time'] = pd.to_datetime(daysDf['Exit Time'])        
+
+    daysDf = daysDf.sort_values(by = 'Entry Time', axis=0, ascending=True)
+    daysDf.reset_index(inplace = True)
+    daysDf = daysDf.drop('index', axis=1)
+    
+    return daysDf
+    
         
 class BacktestReportBuilder :
     
@@ -307,12 +333,13 @@ class BacktestReportBuilder :
      
     """
     
-    def __init__(self,symbol,strategyName, btTradeBook = None, startCapital = 200000, compoundProfits = False, onlyExpiryDays = False):
+    def __init__(self,symbol,strategyName, btTradeBook = None, startCapital = 200000, compoundProfits = False,daysList = [], onlyExpiryDays = False):
         self.symbol = symbol
         self.strategyName = strategyName
         self.btTradeBook = btTradeBook
         self.startCapital = startCapital
         self.compoundProfits = compoundProfits
+        self.onlyDays = daysList
         self.onlyExpiryDays = onlyExpiryDays
         
     
@@ -324,8 +351,11 @@ class BacktestReportBuilder :
             print("No trade to backtest!")
             return
         
-        if self.onlyExpiryDays : 
-            tBook = getOnlyExpiryDayTrades(tBook, self.symbol)
+        if len(self.onlyDays) == 0 :
+             if self.onlyExpiryDays : 
+                 tBook = getOnlyExpiryDayTrades(tBook, self.symbol)
+        else :
+             tBook = getOnlyTheDays(tBook, self.onlyDays)
         
         tBook['Entry Time'] = pd.to_datetime(tBook['Entry Time'])
         tBook['Exit Time'] = pd.to_datetime(tBook['Exit Time'])
@@ -355,7 +385,6 @@ class BacktestReportBuilder :
         
         # ## calculate drawdown 
         maximumDrawdownPer = calculateRunningDrawdown(tBook['Cum. profits']).min() * 100.0
-        
         maxTradeDurationSr = tBook['Exit Time'] - tBook['Entry Time']
         
         
@@ -367,7 +396,9 @@ class BacktestReportBuilder :
         
         dailyReturnsDf = dateAndProfitDf.groupby(pd.Grouper(key='Date', axis=0, freq='D')).sum()
         dailyReturnsDf['Cum. profits'] = dateAndProfitDf[['Date','Cum. profits']].groupby(pd.Grouper(key='Date', axis=0, freq='D')).last()
-
+        dailyReturnsDf.reset_index(inplace = True)
+        
+        portfolioDayWisePnl = dailyReturnsDf.groupby(dailyReturnsDf['Date'].dt.day_name()).sum()
 
         monthlyReturnsDf = dateAndProfitDf.groupby(pd.Grouper(key='Date', axis=0, freq='M')).sum()
         monthlyReturnsDf['Cum. profits'] = dateAndProfitDf[['Date','Cum. profits']].groupby(pd.Grouper(key='Date', axis=0, freq='M')).last()
@@ -532,7 +563,7 @@ class BacktestReportBuilder :
         runningDrawdownDf['drawdown'] = calculateRunningDrawdown(tBook['Cum. profits'])
         runningDrawdownDf['Date'] = tBook['Exit Time']
         
-        figCharts = make_subplots(rows=3, cols=1)
+        figCharts = make_subplots(rows=4, cols=1)
         figCharts.append_trace(go.Scatter(x=tBook['Exit Time'], y=tBook['Cum. profits'],
                     mode='lines+markers',
                     name='Cum. Profits'), row=1, col=1)
@@ -541,15 +572,18 @@ class BacktestReportBuilder :
                     mode='lines+markers',
                     name='Cum. Drawdown'), row=2, col=1)
         
-        figCharts.append_trace(go.Scatter(x= dailyReturnsDf.index, y= dailyReturnsDf['profit'],
+        figCharts.append_trace(go.Scatter(x= dailyReturnsDf['Date'], y= dailyReturnsDf['profit'],
                     mode='lines+markers',
                     name='Daily PnL'), row=3, col=1)
         
-        figCharts.update_layout(title_text="Charts", autosize = True, height = 900*3)
+        figCharts.append_trace(go.Bar(x = portfolioDayWisePnl.index, y = portfolioDayWisePnl['profit'],
+                    name='Day wise total PnL'), row=4, col=1)
+        
+        figCharts.update_layout(title_text="Charts", autosize = True, height = 900*4)
         figCharts.update_xaxes(rangeslider=dict(visible=False)) 
         figCharts.show()
         
-        return report, dailyReturnsDf, monthlyReturnsDf, yearlyReturnsDf
+        return tBook, dailyReturnsDf, monthlyReturnsDf, yearlyReturnsDf
 
 
 
