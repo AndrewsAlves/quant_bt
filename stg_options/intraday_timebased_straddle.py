@@ -35,7 +35,7 @@ strTimeformat = "%Y/%m/%d - %H:%M:%S"
 #start_date = '2017-01'
 #end_date = '2023-08'
 start_date = '2022-1'
-end_date = '2023-08'
+end_date = '2022-02'
 O = "Open"
 H = "High"
 L = "Low"
@@ -45,7 +45,7 @@ hour = 11
 minute = 15
 
 #%%
-csvDatabase = CsvDatabase(LocalCsvDatabase.FINNIFTY)
+csvDatabase = CsvDatabase(LocalCsvDatabase.BANKNIFTY)
 bnfResampled = csvDatabase.getSymbolTimeSeries(start_date, end_date, tf_5Min)
 
 #%%
@@ -59,14 +59,15 @@ tradeBook = bt.TradeBook()
 positions = {}
 priceTrackerDf = {}
 SLper = 25
-lotSize = 40
+lotSize = 25
 strikeDiff = 100
 slippage = 1
 qty = 50
 riskPerTrade = 1 # percentage of capital%
 capital = 1000000
-marginPerLot = 110000
-circular4402 = dt.datetime(2022,10,18)
+marginPerLot = 100000
+
+#circular4402 = dt.datetime(2022,10,18)
 
 dfTemp = pd.DataFrame()
 
@@ -183,9 +184,9 @@ for i, row in tqdm(bnfResampled.iterrows(), desc = "Backtesting", total = bnfRes
     closeP = row["Close"]
     expiryday = False
     
-    if datentime >= circular4402 : 
-        print("Changed strike interval")
-        strikeDiff = 50
+    # if datentime >= circular4402 : 
+    #     print("Changed strike interval")
+    #     strikeDiff = 50
     
     if i > 0 and datentime.date().day != bnfResampled.loc[i-1,"Date"].day: newday = True
     else : newday = False
@@ -226,6 +227,7 @@ for i, row in tqdm(bnfResampled.iterrows(), desc = "Backtesting", total = bnfRes
     if datentime >= datentimeCheck :
         for tradeId in list(positions) :
             trade = positions[tradeId]
+            trade : bt.Trade()
             
             """ Check order status and execute the pending order"""
             if trade.orderStatus == 0 and tradeId in priceTrackerDf : 
@@ -233,18 +235,23 @@ for i, row in tqdm(bnfResampled.iterrows(), desc = "Backtesting", total = bnfRes
                                 
             """ Check order status and track the SL price"""
             if trade.orderStatus == 1 and tradeId in priceTrackerDf : 
-                
-                
+            
                 if not(datentime in priceTrackerDf[tradeId].index):
                     print("Datatime not present")
                     continue
+                
+                
+                trade.updateMAE_MFE(datentime, 
+                                    priceTrackerDf[tradeId].loc(axis = 0)[datentime, "Low"],
+                                    priceTrackerDf[tradeId].loc(axis = 0)[datentime, "High"])
                     
                 slprice = trade.stopLossPrice
                 barHigh = priceTrackerDf[tradeId].loc(axis = 0)[datentime, "High"]
                 
                 if barHigh > slprice : 
                     exitPrice = slprice + slippage
-                    trade.closePosition(datentime, "cover", exitPrice)
+                    trade.MAE = exitPrice
+                    trade.closePosition(datentime, exitPrice)
                     
                     positions.pop(tradeId)
                     priceTrackerDf.pop(tradeId)
@@ -267,7 +274,7 @@ for i, row in tqdm(bnfResampled.iterrows(), desc = "Backtesting", total = bnfRes
                     print("No data available for this datetime so getting the last traded price for that day")
                     exitPrice = 0
 
-            trade.closePosition(datentime, "cover", exitPrice)
+            trade.closePosition(datentime, exitPrice)
             positions.pop(tradeId)
             priceTrackerDf.pop(tradeId)
             tradeBook.addTrade(trade)
@@ -276,7 +283,7 @@ for i, row in tqdm(bnfResampled.iterrows(), desc = "Backtesting", total = bnfRes
 
 #%%
 #daysList = ['Monday', 'Tuesday']
-tradesDf, report, dailyReturn = tradeBook.generateReport("FINNIFTY","finnifty 9 20 25SL classic", capital , ['Monday', 'Tuesday'])
+tradesDf, dailyReturn, monthlyReturn, yeatlyReturnDf = tradeBook.generateReport("FINNIFTY","finnifty 9 20 25SL classic", capital)
 
 #%%
 

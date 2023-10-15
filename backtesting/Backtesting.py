@@ -72,6 +72,10 @@ class TradeBook():
         profits = []
         orderStatus = []
         exitOrderStatus = []
+        MAEPrice = []
+        MFEPrice = []
+        MAEPnl = []
+        MFEPnl = []
         
         
         if merge : tradeList = tradeList
@@ -92,9 +96,11 @@ class TradeBook():
             profits.append(trade.profit)
             orderStatus.append(trade.orderStatus)
             exitOrderStatus.append(trade.exitOrderStatus)
+            MAEPrice.append(trade.MAE)
+            MFEPrice.append(trade.MFE)
+            MAEPnl.append(trade.MAE_pnl)
+            MFEPnl.append(trade.MFE_pnl)
 
-            
-            
         dftemplate = {"symbol" : symbol, 
                       "Entry Time" : tradeEntryTime, 
                       "Type" : tradeType,
@@ -106,7 +112,11 @@ class TradeBook():
                       "Exit Price" : exitPrice,
                       "Expiry Date" : expiry,
                       "profit" : profits,
-                      "Exit Order Status" : exitOrderStatus }
+                      "Exit Order Status" : exitOrderStatus,
+                      "MAE Price" : MAEPrice,
+                      "MFE Price" : MFEPrice,
+                      "MAE Pnl" : MAEPnl,
+                      "MFE Pnl" : MFEPnl,}
         
         tradeBooklocal = pd.DataFrame(dftemplate)
         
@@ -125,7 +135,7 @@ class TradeBook():
                                                 daysList = daysList,
                                                 onlyExpiryDays = onlyExpiryDays)
         report, dailyReturn, monthlyReturn, yeatlyReturnDf = btreprotBuilder.buildReport()
-        return report, report, dailyReturn
+        return  report, dailyReturn, monthlyReturn, yeatlyReturnDf
         
         
 class Trade():
@@ -153,6 +163,10 @@ class Trade():
         self.isOpen = False
         self.orderStatus = 0
         self.exitOrderStatus = 0
+        self.MAE = 0 
+        self.MFE = 0
+        self.MAE_pnl = 0
+        self.MFE_pnl = 0
         self.profit = 0
         
         
@@ -169,20 +183,40 @@ class Trade():
         self.stopLossPrice = SLprice
         self.isOpen = True
         self.orderStatus = orderStatus
+        self.MAE = price
+        self.MFE = price
+        self.MAE_pnl = 0
+        self.MFE_pnl = 0
         
     def setStopLoss(self, SLprice): 
         self.stopLossPrice = SLprice
         
+    def updateMAE_MFE(self, datetime, low, high) :
+        if datetime > self.tradeEntryTime :
+            if self.tradeType == statics.BUY : 
+               if low < self.MAE : self.MAE = low
+               if high > self.MFE : self.MFE = high
+            if self.tradeType == statics.SHORT : 
+               if high > self.MAE : self.MAE = high
+               if low < self.MFE : self.MFE = low
         
-    def closePosition(self, tradetime, tradetype, exitPrice):
+        
+    def closePosition(self, tradetime, exitPrice):
         self.tradeExitTime = tradetime
         self.exitPrice = exitPrice
-        if self.tradeType == "short" : 
-            pnl = (self.entryPrice - self.exitPrice) * self.qty
-            self.profit = round(pnl, 2)
-        if self.tradeType == "buy" : 
+        
+        if self.tradeType == statics.BUY : 
             pnl = (self.exitPrice - self.entryPrice) * self.qty    
             self.profit = round(pnl, 2)
+            self.MAE_pnl = round((self.MAE - self.entryPrice) * self.qty, 2)
+            self.MFE_pnl = round((self.MFE - self.entryPrice) * self.qty, 2)
+        if self.tradeType == statics.SHORT : 
+            pnl = (self.entryPrice - self.exitPrice) * self.qty
+            self.profit = round(pnl, 2)
+            self.MAE_pnl =  round((self.entryPrice - self.MAE) * self.qty, 2)
+            self.MFE_pnl =  round((self.entryPrice - self.MFE) * self.qty, 2)
+            
+        
 
         if exitPrice == 0 : 
             self.profit = 0
@@ -241,6 +275,36 @@ def calculateProfitFactor(tBook) :
     wins = tBook['profit'].loc[tBook['profit'] > 0].sum()
     loss = tBook['profit'].loc[tBook['profit'] < 0].sum()
     return wins / abs(loss)
+
+def generate_streak_info(shots):
+    """
+    Parameters
+    ----------
+    
+    shots:
+        A dataframe containing data about shots.
+        Must contain a `results` column with two
+        unique values for made and missed shots.
+        Must be homogenous (contain only shots
+        that qualify for the streak type you want
+        to calculate (eg all FT for a single
+        player) and be pre-sorted by time.
+
+    Returns
+    -------
+
+    shots_with_streaks:
+        The original dataframe with a new column
+        `streak_counter` containing integers with 
+        counts for each streak.
+    """
+    
+    data = shots['win_loss'].to_frame()
+    data['start_of_streak'] = data['win_loss'].ne(data['win_loss'].shift())
+    data['streak_id'] = data.start_of_streak.cumsum()
+    data['streak_counter'] = data.groupby('streak_id').cumcount() + 1
+    shots_with_streaks = pd.concat([shots, data['streak_counter']], axis=1)
+    return shots_with_streaks
 
 def getOnlyExpiryDayTrades(tBook, symbol) : 
     
@@ -304,9 +368,9 @@ class BacktestReportBuilder :
     Buy & Hold Return (%) 
     com Return (Ann.) (%) *
     STD / Volatality (Ann.) (%) 
-    Sharpe Ratio 
-    Sortino Ratio 
-    Calmar Ratio 
+    Sharpe Ratio
+    Sortino Ratio
+    Calmar Ratio
     -Max. Drawdown *
     -Avg. Drawdown 
     -Max. Drawdown Duration 
@@ -412,7 +476,17 @@ class BacktestReportBuilder :
         else :
             monthlyReturnsDf['Com. per'] = monthlyReturnsDf['profit'] / (self.startCapital / 100.0)
             yearlyReturnsDf['Com. per'] = yearlyReturnsDf['profit'] / (self.startCapital / 100.0)
-
+            
+        #Finding Postive Streaks and Negative streaks on Days
+        noSundayMondayDf = dailyReturnsDf[dailyReturnsDf['profit'] != 0]
+        porfolioStreaks = pd.DataFrame()
+        porfolioStreaks['win_loss'] = np.sign(noSundayMondayDf['profit'])
+        porfolioStreaks = porfolioStreaks[porfolioStreaks['win_loss'] != 0]
+        porfolioStreaks = generate_streak_info(porfolioStreaks['win_loss'].to_frame())
+        positiveDayStreaks = (porfolioStreaks.query('win_loss > 0')).max()['streak_counter']
+        negativeDayStreaks = (porfolioStreaks.query('win_loss < 0')).max()['streak_counter']
+        
+        
         report = {}
         report['strategy'] =  self.strategyName
         report['starting Capital'] =  self.startCapital
@@ -433,6 +507,8 @@ class BacktestReportBuilder :
         report['loss_per'] = round((getWin_LoseRate(tBook)[1] / tBook.shape[0]) * 100.0, 2)
         report['best_trade'] =  tBook['profit'].max()
         report['worst_trade'] = tBook['profit'].min()
+        report['Winning streak Day wise'] = positiveDayStreaks
+        report['Losing streak Day wise'] = negativeDayStreaks
         report['max_trade_duration'] = maxTradeDurationSr.max()
         report['avg_trade_duration'] = maxTradeDurationSr.mean()
         report['profitfactor'] = round(calculateProfitFactor(tBook), 2)
@@ -567,13 +643,12 @@ class BacktestReportBuilder :
         figCharts.append_trace(go.Scatter(x=tBook['Exit Time'], y=tBook['Cum. profits'],
                     mode='lines+markers',
                     name='Cum. Profits'), row=1, col=1)
-                            
+        
         figCharts.append_trace(go.Scatter(x= runningDrawdownDf['Date'], y=runningDrawdownDf['drawdown'],
                     mode='lines+markers',
                     name='Cum. Drawdown'), row=2, col=1)
         
-        figCharts.append_trace(go.Scatter(x= dailyReturnsDf['Date'], y= dailyReturnsDf['profit'],
-                    mode='lines+markers',
+        figCharts.append_trace(go.Bar(x= dailyReturnsDf['Date'], y= dailyReturnsDf['profit'],
                     name='Daily PnL'), row=3, col=1)
         
         figCharts.append_trace(go.Bar(x = portfolioDayWisePnl.index, y = portfolioDayWisePnl['profit'],
@@ -583,7 +658,7 @@ class BacktestReportBuilder :
         figCharts.update_xaxes(rangeslider=dict(visible=False)) 
         figCharts.show()
         
-        return tBook, dailyReturnsDf, monthlyReturnsDf, yearlyReturnsDf
+        return tBook, noSundayMondayDf, monthlyReturnsDf, yearlyReturnsDf
 
 
 

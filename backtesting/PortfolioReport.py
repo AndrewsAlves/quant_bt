@@ -228,8 +228,11 @@ class PortfolioReportBuilder :
         self.porfolioStreaks['win_loss'] = np.sign(self.porfolio['Daily_Net_Pnl'])
         self.porfolioStreaks = self.porfolioStreaks[self.porfolioStreaks['win_loss'] != 0]
         self.porfolioStreaks = generate_streak_info(self.porfolioStreaks['win_loss'].to_frame())
-        self.positiveDayStreams = (self.porfolioStreaks.query('win_loss > 0')).max()
-        self.negativeDayStreams = (self.porfolioStreaks.query('win_loss < 0')).max()
+        self.positiveDayStreaks = (self.porfolioStreaks.query('win_loss > 0')).max()['streak_counter']
+        self.negativeDayStreaks = (self.porfolioStreaks.query('win_loss < 0')).max()['streak_counter']
+        print('Positive Streaks - ' + str(self.positiveDayStreaks))
+        print('Negative Streaks - ' + str(self.negativeDayStreaks))
+
 
         self.portfolioDayWisePnl = self.porfolio.groupby(self.porfolio['Date'].dt.day_name()).sum()
 

@@ -28,14 +28,14 @@ finstg11 = pd.read_csv(backtestReportTradesPath  + '38671782_Finnifty 11 15 25 S
 
 #%%
 portforlioDic = {}
-#portforlioDic['NIFTY_9:20'] = pr.getStrategyDic('NIFTY_9:20', 'NIFTY', stg920, 1000000 , ['Friday'])
-#portforlioDic['NIFTY_11:15'] = pr.getStrategyDic('NIFTY_11:15', 'NIFTY', stg11, 1000000, ['Friday'])
+portforlioDic['NIFTY_9:20'] = pr.getStrategyDic('NIFTY_9:20', 'NIFTY', stg920, 1000000 , onlyExpiryDays=True)
+portforlioDic['NIFTY_11:15'] = pr.getStrategyDic('NIFTY_11:15', 'NIFTY', stg11, 1000000, onlyExpiryDays=True)
 #portforlioDic['NIFTY_1:15'] = pr.getStrategyDic('NIFTY_1:15', 'NIFTY', stg1pm, 1000000 )
-#portforlioDic['BANKNIFTY_9:20'] = pr.getStrategyDic('BANKNIFTY_9:20', 'BANKNIFTY', bnfstg920, 1000000 , ['Friday'])
-#portforlioDic['BANKNIFTY_11:15'] = pr.getStrategyDic('BANKNIFTY_11:15', 'BANKNIFTY', bnfstg11, 1000000 ,   ['Friday'])
+portforlioDic['BANKNIFTY_9:20'] = pr.getStrategyDic('BANKNIFTY_9:20', 'BANKNIFTY', bnfstg920, 1000000 , onlyExpiryDays=True)
+portforlioDic['BANKNIFTY_11:15'] = pr.getStrategyDic('BANKNIFTY_11:15', 'BANKNIFTY', bnfstg11, 1000000 , onlyExpiryDays=True)
 #portforlioDic['BANKNIFTY_1:15'] = pr.getStrategyDic('BANKNIFTY_1:15', 'BANKNIFTY', bnfstg1pm, 1000000 )
-portforlioDic['FINNIFTY_9:20'] = pr.getStrategyDic('FINNIFTY_9:20', 'FINNIFTY', finstg920, 1000000 , daysList = ['Friday'])
-portforlioDic['FINNIFTY_11:15'] = pr.getStrategyDic('FINNIFTY_11:15', 'FINNIFTY', finstg11, 1000000, daysList = ['Friday'])
+portforlioDic['FINNIFTY_9:20'] = pr.getStrategyDic('FINNIFTY_9:20', 'FINNIFTY', finstg920, 1000000 , daysList = ['Monday', 'Tuesday'])
+portforlioDic['FINNIFTY_11:15'] = pr.getStrategyDic('FINNIFTY_11:15', 'FINNIFTY', finstg11, 1000000, daysList = ['Monday', 'Tuesday'])
 #portforlioDic['FINNIFTY_1:15'] = pr.getStrategyDic('FINNIFTY_1:15', 'FINNIFTY', finstg1pm, 1000000 )
 #daysList = ['Monday', 'Tuesday']
 
