@@ -29,80 +29,84 @@ webbrowser.open_new("https://api.icicidirect.com/apiuser/login?api_key="+urllib.
 
 # Generate Session
 #%%
-sessionCode = 24044078
+sessionCode = 26527037
 result = breeze.generate_session(api_secret=APISECREAT,session_token=sessionCode)
 print(result)
 
 #%%
 """ THIS SECTION IS TO RETRIVE SINGLE INDEX CASH / EQUITY DATA """
 
-# #Ticker or Instrument ,Date,Open,High,Low,Close,Volume,Open Interest
-# startDate  = datetime(2017, 1, 1, 9, 0, 0)
-# endDate  = datetime(2017, 1, 2, 15, 35, 0)
-# instrument = "NIFFIN"
-# segment = ["cash","options"]
-# priceDf = pd.DataFrame()
-# exchage_code = ["NSE","NFO"]
-# option = ['call', 'put']
-# stopDate = datetime(2023, 10, 12)
+#FINNIFY - NIFFIN
+#NIFTY - NIFTY
+#BANKNIFTY - CNXBAN
+#Ticker or Instrument ,Date,Open,High,Low,Close,Volume,Open Interest
+startDate  = datetime(2023, 10, 13, 9, 0, 0)
+endDate  = datetime(2023, 10, 14, 15, 35, 0)
+instrument = "NIFFIN"
+segment = ["cash","options"]
+priceDf = pd.DataFrame()
+exchage_code = ["NSE","NFO"]
+option = ['call', 'put']
+stopDate = datetime(2023, 11, 19)
 
-# days = range(2333)
-# for i in tqdm(days, desc="Retriving data", total = len(days)) :
+days = range(2333)
+for i in tqdm(days, desc="Retriving data", total = len(days)) :
     
-#     result = breeze.get_historical_data_v2(interval= "1minute",
-#                             from_date= startDate,
-#                             to_date= endDate,
-#                             stock_code= instrument,
-#                             exchange_code= exchage_code[0],
-#                             product_type= segment[0])
+    result = breeze.get_historical_data_v2(interval= "1minute",
+                            from_date= startDate,
+                            to_date= endDate,
+                            stock_code= instrument,
+                            exchange_code= exchage_code[0],
+                            product_type= segment[0])
     
-#     successResult = result['Success']
-#     if len(successResult) != 0:
-#         daf = pd.DataFrame(successResult)
-#         priceDf = priceDf.append(daf)
+    successResult = result['Success']
+    if len(successResult) != 0:
+        daf = pd.DataFrame(successResult)
+        priceDf = priceDf.append(daf)
 
-#     # Increment the date by one day.
-#     startDate = startDate + timedelta(days=2)
-#     endDate = endDate + timedelta(days=2) 
+    # Increment the date by one day.
+    startDate = startDate + timedelta(days=2)
+    endDate = endDate + timedelta(days=2) 
     
-#     if startDate > stopDate :
-#         break
+    if startDate > stopDate :
+        break
     
-#     if priceDf.empty:
-#         continue
+    if priceDf.empty:
+        continue
 
-# priceDf['Instrument'] = priceDf['stock_code']
-# priceDf.drop(['stock_code'], axis=1, inplace=True)
-# priceDf.drop(['exchange_code'], axis=1, inplace = True)
-# priceDf.rename(columns = {'open':'Open'}, inplace = True)
-# priceDf.rename(columns = {'high':'High'}, inplace = True)
-# priceDf.rename(columns = {'low':'Low'}, inplace = True)
-# priceDf.rename(columns = {'close':'Close'}, inplace = True)
-# priceDf.rename(columns = {'volume':'Volume'}, inplace = True)
-# priceDf.rename(columns = {'datetime':'Date'}, inplace = True)
-# #priceDf.rename(columns = {'open_interest':'OpenInterest'}, inplace = True)
+priceDf['Instrument'] = priceDf['stock_code']
+priceDf.drop(['stock_code'], axis=1, inplace=True)
+priceDf.drop(['exchange_code'], axis=1, inplace = True)
+priceDf.rename(columns = {'open':'Open'}, inplace = True)
+priceDf.rename(columns = {'high':'High'}, inplace = True)
+priceDf.rename(columns = {'low':'Low'}, inplace = True)
+priceDf.rename(columns = {'close':'Close'}, inplace = True)
+priceDf.rename(columns = {'volume':'Volume'}, inplace = True)
+priceDf.rename(columns = {'datetime':'Date'}, inplace = True)
+#priceDf.rename(columns = {'open_interest':'OpenInterest'}, inplace = True)
 
-# priceDf = priceDf[['Instrument','Date','Open','High','Low','Close','Volume']]
-# priceDf = priceDf.reset_index()
-# priceDf.drop(['index'], axis=1, inplace = True)
-# priceDf['Instrument'] = "FINNIFTY"
-# #print(priceDf['Date'].iloc[-1])
-# #priceDf.to_csv("G:\\andyvoid\\data\quotes\\csv_database\\nifty\\options\\2023\\" + fileName.upper() +".csv", index= False)
-# #completedIndex = i
+priceDf = priceDf[['Instrument','Date','Open','High','Low','Close','Volume']]
+priceDf = priceDf.reset_index()
+priceDf.drop(['index'], axis=1, inplace = True)
+priceDf['Instrument'] = "FINNIFTY"
+#print(priceDf['Date'].iloc[-1])
+#priceDf.to_csv("G:\\andyvoid\\data\quotes\\csv_database\\nifty\\options\\2023\\" + fileName.upper() +".csv", index= False)
+#completedIndex = i
 
-# priceDf.to_csv("G:\\andyvoid\\data\quotes\\csv_database\\finnifty\\indices\\" + "Nifty_financial_services_2017_2023" + ".csv", index= False)
+priceDf.to_csv("G:\\andyvoid\\data\quotes\\csv_database\\finnifty\\indices\\" + "Nifty_bank_2023_10_13" + ".csv", index= False)
 
 #%%
 
 """ THIS SECTION IS TO RETRIVE ICICI BANK OPTIONS DATA """
 #Ticker or Instrument ,Date,Open,High,Low,Close,Volume,Open Interest
 
-allStrikesDf = pd.read_csv("G:\\andyvoid\\data\\quotes\\bhav\\finnifty\\finnifty_2022_CEPE_AllStrikes_traded_dates.csv")
+allStrikesDf = pd.read_csv("G:\\andyvoid\\data\\quotes\\bhav\\temp\\finnifty_oct_nov_CEPE_All_strikes_traded_days.csv")
 allStrikesDf['expiry'] = pd.to_datetime(allStrikesDf['EXPIRY_DT'])
 allStrikesDf = allStrikesDf[allStrikesDf['STRIKE_PR'] != 0]
 #%%
 #NIFFIN 
 #CNXBAN
+#NIFTY
 instrument = "NIFFIN"
 segment = ["cash","options"]
 exchage_code = ["NSE","NFO"]
@@ -133,12 +137,12 @@ completedIndex = 0 - 1
 
 #%%
 
-for i, row in tqdm(allStrikesDf.iterrows(), desc = "Backtesting", total = allStrikesDf.shape[0]): 
+for i, row in tqdm(allStrikesDf.iterrows(), desc = "Downloading", total = allStrikesDf.shape[0]): 
     
     if i <= completedIndex:
         continue
     
-    if i > 10000 :
+    if i > 664 :
         break
     
     print ('Index' + str(i))
@@ -217,7 +221,7 @@ for i, row in tqdm(allStrikesDf.iterrows(), desc = "Backtesting", total = allStr
     priceDf['Instrument'] = "FINNIFTY"
     #print(priceDf['Date'].iloc[-1])
     fileName = row['SYMBOL'] + expiry.strftime("%d%b%y") + str(int(strike)) + row['OPTION_TYP']
-    priceDf.to_csv("G:\\andyvoid\\data\\quotes\\csv_database\\FINNIFTY\\options\\missingdata\\" + fileName.upper() +".csv", index= False)
+    priceDf.to_csv("G:\\andyvoid\\data\\quotes\\csv_database\\FINNIFTY\\options\\2023\\" + fileName.upper() +".csv", index= False)
 
     completedIndex = i
 

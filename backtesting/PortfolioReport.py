@@ -26,6 +26,11 @@ def CumulativeCapital(lists, capital):
     roundedCu = [ round(i) for i in cu_list[1:] ]
     return roundedCu
 
+def calculateProfitFactor(tBook) : 
+    wins = tBook['Daily_Net_Pnl'].loc[tBook['Daily_Net_Pnl'] > 0].sum()
+    loss = tBook['Daily_Net_Pnl'].loc[tBook['Daily_Net_Pnl'] < 0].sum()
+    return wins / abs(loss)
+
 def calculateRunningDrawdown(cum_profit, capital = 3000000) : 
     # We are going to use a trailing 252 trading day window
     window = 252
@@ -138,26 +143,7 @@ def getOnlyTheDays(tBook, dayList = []) :
     
     return daysDf
 
-def getOnlyTheDays(tBook, dayList = []) : 
-    
-    daysDf = None
-    portfolioDayWise = tBook.groupby(tBook['Entry Time'].dt.day_name())
-    
-    for day in dayList : 
-        dayDf = portfolioDayWise.get_group(day)
-        if daysDf is None :
-            daysDf = dayDf
-        else :
-            daysDf =  pd.concat([daysDf, dayDf])
-                    
-    daysDf['Entry Time'] = pd.to_datetime(daysDf['Entry Time'])
-    daysDf['Exit Time'] = pd.to_datetime(daysDf['Exit Time'])        
 
-    daysDf = daysDf.sort_values(by = 'Entry Time', axis=0, ascending=True)
-    daysDf.reset_index(inplace = True)
-    daysDf = daysDf.drop('index', axis=1)
-    
-    return daysDf
 
 def getStrategyDic(name,symbol, stgDf, capitalAllocated, daysList = [], onlyExpiryDays = False) :
     strategy = {}
@@ -195,6 +181,9 @@ class PortfolioReportBuilder :
             onlyExpiry = strategyDic['onlyExpiryDay']
             daysList = strategyDic['daysList']
             
+            strategy['Entry Time'] = pd.to_datetime(strategy['Entry Time'])
+            strategy['Exit Time'] = pd.to_datetime(strategy['Exit Time'])
+            
             if len(daysList) == 0 :
              if onlyExpiry : 
                  strategy = getOnlyExpiryDayTrades(strategy, symbol)
@@ -205,9 +194,6 @@ class PortfolioReportBuilder :
             stgNameList.append(stgName)
             capital = strategyDic['capital']
 
-            strategy['Entry Time'] = pd.to_datetime(strategy['Entry Time'])
-            strategy['Exit Time'] = pd.to_datetime(strategy['Exit Time'])
-            
             dateAndProfitDf = pd.DataFrame()
             dateAndProfitDf['Date'] = strategy['Exit Time']
             dateAndProfitDf[stgName + '_profit'] = strategy['profit']
@@ -223,6 +209,7 @@ class PortfolioReportBuilder :
         
         self.porfolio['Daily_Net_Pnl'] = self.porfolio.sum(axis = 1)
         self.porfolio.reset_index(inplace = True)
+        
         
         self.porfolioStreaks = pd.DataFrame()
         self.porfolioStreaks['win_loss'] = np.sign(self.porfolio['Daily_Net_Pnl'])
@@ -256,9 +243,17 @@ class PortfolioReportBuilder :
             self.portfolioMontly = self.portfolioMontly.loc[self.portfolioMontly.index.year == self.year]
             self.portfolioYearly = self.portfolioYearly.loc[self.portfolioYearly.index.year == self.year]
 
-    
-        #fig = pltEx.line(self.portfolioCum, x="Date", y= self.portfolioCum.columns[1:])
-        #fig.show()
+        ############ TABULATE LAYOUT #############
+        
+        report = {}
+        report['Profit factor'] = calculateProfitFactor(self.porfolio)
+        report['Winning Streak'] = self.positiveDayStreaks
+        report['Losing Streak'] = self.negativeDayStreaks
+
+        
+        print("\\\\\\\\\\\\\ BACKTEST REPORT ///////////////")
+        print(tabulate(report.items(), headers = ['Parameters', 'Result'], tablefmt='grid'))
+
         
         ############ TABLE LAOUT ################
         
@@ -334,8 +329,7 @@ class PortfolioReportBuilder :
                     mode='lines+markers',
                     name='Cum. Drawdown'), row=2, col=1)
         
-        figCharts.append_trace(go.Scatter(x = self.porfolio['Date'], y = self.porfolio['Daily_Net_Pnl'],
-                    mode='lines+markers',
+        figCharts.append_trace(go.Bar(x = self.porfolio['Date'], y = self.porfolio['Daily_Net_Pnl'],
                     name='Daily PnL'), row=3, col=1)
         
         figCharts.append_trace(go.Bar(x = self.portfolioDayWisePnl.index, y = self.portfolioDayWisePnl['Daily_Net_Pnl'],

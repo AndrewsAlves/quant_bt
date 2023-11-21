@@ -34,18 +34,18 @@ strTimeformat = "%Y/%m/%d - %H:%M:%S"
 
 #start_date = '2017-01'
 #end_date = '2023-08'
-start_date = '2022-1'
-end_date = '2022-02'
+start_date = '2023-10-13'
+end_date = '2023-11-09'
 O = "Open"
 H = "High"
 L = "Low"
 C = "Close"
 
-hour = 11
-minute = 15
+hour = 9
+minute = 20
 
 #%%
-csvDatabase = CsvDatabase(LocalCsvDatabase.BANKNIFTY)
+csvDatabase = CsvDatabase(LocalCsvDatabase.FINNIFTY)
 bnfResampled = csvDatabase.getSymbolTimeSeries(start_date, end_date, tf_5Min)
 
 #%%
@@ -59,13 +59,13 @@ tradeBook = bt.TradeBook()
 positions = {}
 priceTrackerDf = {}
 SLper = 25
-lotSize = 25
-strikeDiff = 100
+lotSize = 40
+strikeDiff = 50
 slippage = 1
 qty = 50
 riskPerTrade = 1 # percentage of capital%
 capital = 1000000
-marginPerLot = 100000
+marginPerLot = 105000
 
 #circular4402 = dt.datetime(2022,10,18)
 
@@ -283,7 +283,7 @@ for i, row in tqdm(bnfResampled.iterrows(), desc = "Backtesting", total = bnfRes
 
 #%%
 #daysList = ['Monday', 'Tuesday']
-tradesDf, dailyReturn, monthlyReturn, yeatlyReturnDf = tradeBook.generateReport("FINNIFTY","finnifty 9 20 25SL classic", capital)
+tradesDf, dailyReturn, monthlyReturn, yeatlyReturnDf = tradeBook.generateReport("BANKNIFTY","nifty 9 20 25SL classic", capital)
 
 #%%
 
@@ -301,9 +301,17 @@ flag['stars'] = 3
 stgId, strategies = strategyAr.addStrategy(flag, tradeBook)
 
 #%%
+backtestReportTradesPath = "G:\\andyvoid\\data\\backtest_report\\backtest_trades\\"
+bnfstg920 = pd.read_csv(backtestReportTradesPath  + '8164be89_Finnifty 9 20 25 SL Classic.csv')
+bnfstg920.drop('Unnamed: 0', axis = 1, inplace=True)
+
+finalDf = bnfstg920.append(tradeBook.getTradeBook())
+finalDf.reset_index(inplace = True)
+finalDf.drop('index', axis = 1, inplace=True)
+#%%
+finalDf.to_csv(backtestReportTradesPath + '8164be89_Finnifty 9 20 25 SL Classic.csv')
 
 
-        
 
 
     

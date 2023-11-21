@@ -2,11 +2,11 @@ import pandas as pd
 import datetime as dt
 from tqdm import tqdm
 
-nifty = pd.read_csv("G:\\andyvoid\\data\\quotes\\bhav\\finnifty\\finnifty_derivatives_2022.csv")
-nifty2 = pd.read_csv("G:\\andyvoid\\data\\quotes\\bhav\\finnifty\\finnifty_derivatives_2023.csv")
+nifty = pd.read_csv("G:\\andyvoid\\data\\quotes\\bhav\\finnifty\\finnifty_derivatives_2023.csv")
+#nifty2 = pd.read_csv("G:\\andyvoid\\data\\quotes\\bhav\\finnifty\\finnifty_derivatives_2023.csv")
 
-niftyBhav = nifty.append(nifty2)
-#niftyBhav = nifty
+#niftyBhav = nifty.append(nifty2)
+niftyBhav = nifty
 niftyBhav['Date'] = pd.to_datetime(niftyBhav['TIMESTAMP'], format = "%Y-%m-%d")
 niftyBhav['EXPIRY_DT'] = pd.to_datetime(niftyBhav['EXPIRY_DT'], format = "%d-%b-%Y")
 niftyDailyBhav = niftyBhav.groupby('Date')
@@ -16,7 +16,7 @@ tradedDays.drop_duplicates(keep = 'first', inplace= True)
 tradedDays = tradedDays.reset_index()
 tradedDays.drop('index', axis = 1)
 
-niftyOptionTickers = pd.read_csv("G:\\andyvoid\\data\\quotes\\bhav\\finnifty\\finnifty_2023_CEPE_AllStrikes.csv")
+niftyOptionTickers = pd.read_csv("G:\\andyvoid\\data\\quotes\\bhav\\temp\\finnifty_oct_nov_CEPE_All_strikes.csv")
 niftyOptionTickers['EXPIRY_DT'] = pd.to_datetime(niftyOptionTickers['EXPIRY_DT'], format = "%Y-%m-%d")
 #%%
 tickerTradedDayList = []
@@ -73,7 +73,7 @@ for item in dummy:
         
 #%%
 niftyOptionTickers['DaysTraded'] = dummy
-niftyOptionTickers.to_csv("G:\\andyvoid\\data\\quotes\\bhav\\finnifty\\finnifty_2023_CEPE_AllStrikes_traded_dates.csv", index = False)
+niftyOptionTickers.to_csv("G:\\andyvoid\\data\\quotes\\bhav\\temp\\finnift_oct_nov_CEPE_All_strikes_traded_days.csv", index = False)
 
             
     
