@@ -397,7 +397,7 @@ class BacktestReportBuilder :
      
     """
     
-    def __init__(self,symbol,strategyName, btTradeBook = None, startCapital = 200000, compoundProfits = False,daysList = [], onlyExpiryDays = False):
+    def __init__(self,symbol,strategyName, btTradeBook = None, startCapital = 200000, compoundProfits = False, daysList = [], onlyExpiryDays = False, generateGraph = True):
         self.symbol = symbol
         self.strategyName = strategyName
         self.btTradeBook = btTradeBook
@@ -405,6 +405,7 @@ class BacktestReportBuilder :
         self.compoundProfits = compoundProfits
         self.onlyDays = daysList
         self.onlyExpiryDays = onlyExpiryDays
+        self.generateGraph = generateGraph
         
     
     def buildReport(self):
@@ -486,6 +487,9 @@ class BacktestReportBuilder :
         positiveDayStreaks = (porfolioStreaks.query('win_loss > 0')).max()['streak_counter']
         negativeDayStreaks = (porfolioStreaks.query('win_loss < 0')).max()['streak_counter']
         
+        ## FIND Maximum Adverse Excertion and Maximum favorable Excertion
+        tBook['MAE_%'] = round((abs(tBook['Entry Price'] - tBook['MAE Price']) / (abs(tBook['Entry Price'] - tBook['SL price']) / 100)), 2)
+        tBook['MFE_%'] = round((abs(tBook['Entry Price'] - tBook['MFE Price']) / (abs(tBook['Entry Price'] - 0) / 100)), 2)
         
         report = {}
         report['strategy'] =  self.strategyName
@@ -635,28 +639,30 @@ class BacktestReportBuilder :
         
         #//////////////////////////////// CHART LAYOUT //////////////////
         
-        runningDrawdownDf = pd.DataFrame()
-        runningDrawdownDf['drawdown'] = calculateRunningDrawdown(tBook['Cum. profits'])
-        runningDrawdownDf['Date'] = tBook['Exit Time']
-        
-        figCharts = make_subplots(rows=4, cols=1)
-        figCharts.append_trace(go.Scatter(x=tBook['Exit Time'], y=tBook['Cum. profits'],
-                    mode='lines+markers',
-                    name='Cum. Profits'), row=1, col=1)
-        
-        figCharts.append_trace(go.Scatter(x= runningDrawdownDf['Date'], y=runningDrawdownDf['drawdown'],
-                    mode='lines+markers',
-                    name='Cum. Drawdown'), row=2, col=1)
-        
-        figCharts.append_trace(go.Bar(x= dailyReturnsDf['Date'], y= dailyReturnsDf['profit'],
-                    name='Daily PnL'), row=3, col=1)
-        
-        figCharts.append_trace(go.Bar(x = portfolioDayWisePnl.index, y = portfolioDayWisePnl['profit'],
-                    name='Day wise total PnL'), row=4, col=1)
-        
-        figCharts.update_layout(title_text="Charts", autosize = True, height = 900*4)
-        figCharts.update_xaxes(rangeslider=dict(visible=False)) 
-        figCharts.show()
+        if self.generateGraph :
+    
+            runningDrawdownDf = pd.DataFrame()
+            runningDrawdownDf['drawdown'] = calculateRunningDrawdown(tBook['Cum. profits'])
+            runningDrawdownDf['Date'] = tBook['Exit Time']
+            
+            figCharts = make_subplots(rows=4, cols=1)
+            figCharts.append_trace(go.Scatter(x=tBook['Exit Time'], y=tBook['Cum. profits'],
+                        mode='lines+markers',
+                        name='Cum. Profits'), row=1, col=1)
+            
+            figCharts.append_trace(go.Scatter(x= runningDrawdownDf['Date'], y=runningDrawdownDf['drawdown'],
+                        mode='lines+markers',
+                        name='Cum. Drawdown'), row=2, col=1)
+            
+            figCharts.append_trace(go.Bar(x= dailyReturnsDf['Date'], y= dailyReturnsDf['profit'],
+                        name='Daily PnL'), row=3, col=1)
+            
+            figCharts.append_trace(go.Bar(x = portfolioDayWisePnl.index, y = portfolioDayWisePnl['profit'],
+                        name='Day wise total PnL'), row=4, col=1)
+            
+            figCharts.update_layout(title_text="Charts", autosize = True, height = 900*4)
+            figCharts.update_xaxes(rangeslider=dict(visible=False)) 
+            figCharts.show()
         
         return tBook, noSundayMondayDf, monthlyReturnsDf, yearlyReturnsDf
 

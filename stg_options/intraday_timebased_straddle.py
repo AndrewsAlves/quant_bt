@@ -34,15 +34,15 @@ strTimeformat = "%Y/%m/%d - %H:%M:%S"
 
 #start_date = '2017-01'
 #end_date = '2023-08'
-start_date = '2023-10-13'
+start_date = '2022-01'
 end_date = '2023-11-09'
 O = "Open"
 H = "High"
 L = "Low"
 C = "Close"
 
-hour = 9
-minute = 20
+hour = 11
+minute = 15
 
 #%%
 csvDatabase = CsvDatabase(LocalCsvDatabase.FINNIFTY)
@@ -55,19 +55,24 @@ bnfResampled = csvDatabase.getSymbolTimeSeries(start_date, end_date, tf_5Min)
 Time frame = 5m 
 """
 
+## Margin Nifty 111000
+## Margin banknifty 86000 / 14100 for 25lot
+## Margin finnifty 105000
+
 tradeBook = bt.TradeBook()
 positions = {}
 priceTrackerDf = {}
 SLper = 25
 lotSize = 40
-strikeDiff = 50
-slippage = 1
-qty = 50
+strikeDiff = 100
+slippage = 0
+qty = 40
 riskPerTrade = 1 # percentage of capital%
 capital = 1000000
 marginPerLot = 105000
 
-#circular4402 = dt.datetime(2022,10,18)
+circular4402 = dt.datetime(2022,10,18)
+#circularBanknifty = dt.datetime(2023,7,1)
 
 dfTemp = pd.DataFrame()
 
@@ -184,9 +189,14 @@ for i, row in tqdm(bnfResampled.iterrows(), desc = "Backtesting", total = bnfRes
     closeP = row["Close"]
     expiryday = False
     
-    # if datentime >= circular4402 : 
-    #     print("Changed strike interval")
-    #     strikeDiff = 50
+    if datentime >= circular4402 : 
+        print("Changed strike interval")
+        strikeDiff = 50
+     
+    #if datentime >= circularBanknifty and lotSize != 15: 
+    #     print("Changed lot size")
+    #     lotSize = 15
+    #     marginPerLot = 85000
     
     if i > 0 and datentime.date().day != bnfResampled.loc[i-1,"Date"].day: newday = True
     else : newday = False
@@ -283,7 +293,7 @@ for i, row in tqdm(bnfResampled.iterrows(), desc = "Backtesting", total = bnfRes
 
 #%%
 #daysList = ['Monday', 'Tuesday']
-tradesDf, dailyReturn, monthlyReturn, yeatlyReturnDf = tradeBook.generateReport("BANKNIFTY","nifty 9 20 25SL classic", capital)
+tradesDf, dailyReturn, monthlyReturn, yeatlyReturnDf = tradeBook.generateReport("NIFTY","nifty 9 20 25SL classic", capital)
 
 #%%
 
@@ -291,11 +301,11 @@ strategyAr = sa.StrategyArsenal()
 
 flag = {}
 flag['id'] = strategyAr.getNewStrategyId()
-flag['strategy_name'] = "Finnifty 11 15 25 SL Classic"
+flag['strategy_name'] = "Finnifty 11 15 25 SL Classic_MAE"
 flag['start_date'] = start_date
 flag['end_date'] = end_date
 flag['desc'] = "11 15 am short straddle with 25% stoploss based on premium and Lot size based on adaptive position sizing based on points and Max size is based on capital"
-flag['stars'] = 3
+flag['stars'] = 4
 
 #%%
 stgId, strategies = strategyAr.addStrategy(flag, tradeBook)

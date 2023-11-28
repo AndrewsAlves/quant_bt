@@ -8,6 +8,7 @@ import datetime as dt
 from dateutil.relativedelta import relativedelta 
 from tabulate import tabulate
 from Utilities import StaticVariables as statics
+from backtesting import Backtesting as backtesting
 
 import plotly.express as pltEx
 from plotly.subplots import make_subplots
@@ -158,8 +159,10 @@ def getStrategyDic(name,symbol, stgDf, capitalAllocated, daysList = [], onlyExpi
 
 class PortfolioReportBuilder :
     
-    def __init__(self, portfolioDic, totalCapital, year = None) : 
+    def __init__(self, portfolioName, portfolioDic, totalCapital, year = None) : 
+        self.portfolioName = portfolioName
         self.portfolioDic = portfolioDic
+        self.portfolioTradeBook = pd.DataFrame()
         self.porfolio = pd.DataFrame()
         self.portfolioCum = pd.DataFrame()
         self.portfolioMontly = pd.DataFrame()
@@ -189,6 +192,9 @@ class PortfolioReportBuilder :
                  strategy = getOnlyExpiryDayTrades(strategy, symbol)
             else :
                  strategy = getOnlyTheDays(strategy, daysList)
+                 
+            if self.year != None :
+                strategy = strategy.loc[(strategy['Entry Time'].dt.year == self.year) & (strategy['Exit Time'].dt.year == self.year)]
                 
             
             stgNameList.append(stgName)
@@ -203,14 +209,21 @@ class PortfolioReportBuilder :
             dateAndProfitDf['Cum. ' + stgName] =  pd.Series(CumulativeCapital(strategy['profit'].tolist(), capital))
             cumDf = dateAndProfitDf[['Date','Cum. ' + stgName]].groupby(pd.Grouper(key='Date', axis=0, freq='D')).last()
             
+            self.portfolioTradeBook = pd.concat([self.portfolioTradeBook, strategy], axis=0)
             self.porfolio = pd.concat([self.porfolio, strategyDaily], axis=1)
             self.portfolioCum = pd.concat([self.portfolioCum, cumDf], axis=1)
 
+        
+        self.portfolioTradeBook.sort_values(by='Entry Time', inplace=True)
+        self.portfolioTradeBook.reset_index(inplace=True)
+        self.portfolioTradeBook = self.portfolioTradeBook.drop(['Unnamed: 0', 'index'], axis=1)
+        
         
         self.porfolio['Daily_Net_Pnl'] = self.porfolio.sum(axis = 1)
         self.porfolio.reset_index(inplace = True)
         
         
+        ## calculate winning streak on day wise
         self.porfolioStreaks = pd.DataFrame()
         self.porfolioStreaks['win_loss'] = np.sign(self.porfolio['Daily_Net_Pnl'])
         self.porfolioStreaks = self.porfolioStreaks[self.porfolioStreaks['win_loss'] != 0]
@@ -220,7 +233,7 @@ class PortfolioReportBuilder :
         print('Positive Streaks - ' + str(self.positiveDayStreaks))
         print('Negative Streaks - ' + str(self.negativeDayStreaks))
 
-
+        
         self.portfolioDayWisePnl = self.porfolio.groupby(self.porfolio['Date'].dt.day_name()).sum()
 
         self.portfolioCum.reset_index(inplace= True)
@@ -237,22 +250,32 @@ class PortfolioReportBuilder :
         self.portfolioMontly['Com. return per'] = self.portfolioMontly['Daily_Net_Pnl'] / (self.totalCapital / 100.0)
         self.portfolioYearly['Com. return per'] = self.portfolioYearly['Daily_Net_Pnl'] / (self.totalCapital / 100.0)
         
-        if self.year != None :
-            self.porfolio = self.porfolio.loc[self.porfolio['Date'].dt.year == self.year]
-            self.portfolioCum = self.portfolioCum.loc[self.portfolioCum['Date'].dt.year == self.year]
-            self.portfolioMontly = self.portfolioMontly.loc[self.portfolioMontly.index.year == self.year]
-            self.portfolioYearly = self.portfolioYearly.loc[self.portfolioYearly.index.year == self.year]
+        # if self.year != None :
+        #     self.porfolio = self.porfolio.loc[self.porfolio['Date'].dt.year == self.year]
+        #     self.portfolioCum = self.portfolioCum.loc[self.portfolioCum['Date'].dt.year == self.year]
+        #     self.portfolioMontly = self.portfolioMontly.loc[self.portfolioMontly.index.year == self.year]
+        #     self.portfolioYearly = self.portfolioYearly.loc[self.portfolioYearly.index.year == self.year]
+        
+        ############ BUILD BACKTESTREPORT #########
+        
+        btreprotBuilder = backtesting.BacktestReportBuilder("Portfolio", 
+                                                            self.portfolioName, 
+                                                            btTradeBook = self.portfolioTradeBook, 
+                                                            startCapital = self.totalCapital,
+                                                            generateGraph=False)
+        report, dailyReturn, monthlyReturn, yeatlyReturnDf = btreprotBuilder.buildReport()
+        
 
         ############ TABULATE LAYOUT #############
         
-        report = {}
-        report['Profit factor'] = calculateProfitFactor(self.porfolio)
-        report['Winning Streak'] = self.positiveDayStreaks
-        report['Losing Streak'] = self.negativeDayStreaks
+        dailyReport = {}
+        dailyReport['Profit factor'] = calculateProfitFactor(self.porfolio)
+        dailyReport['Winning Streak'] = self.positiveDayStreaks
+        dailyReport['Losing Streak'] = self.negativeDayStreaks
 
         
         print("\\\\\\\\\\\\\ BACKTEST REPORT ///////////////")
-        print(tabulate(report.items(), headers = ['Parameters', 'Result'], tablefmt='grid'))
+        print(tabulate(dailyReport.items(), headers = ['Parameters', 'Result'], tablefmt='grid'))
 
         
         ############ TABLE LAOUT ################
@@ -320,7 +343,21 @@ class PortfolioReportBuilder :
         runningDrawdownDf['drawdown'] = calculateRunningDrawdown(self.portfolioCum['Cum. Daily_Net_Pnl'])
         runningDrawdownDf['Date'] = self.portfolioCum['Date']
         
-        figCharts = make_subplots(rows=4, cols=1)
+        """
+        subplot_titles=("Daily Cumulative Profits", 
+                                                                 "Daily Cumulative Drawdown",
+                                                                 "Daily Profit & loss",
+                                                                 "Day Wise total Profit & loss",
+                                                                 "Distribution of maximum adverse excursion Percentages (Plotly)",
+                                                                 "Distribution of maximum favorable excursion Percentages (Plotly)")"""
+        
+        figCharts = make_subplots(rows=6, cols=1,subplot_titles=("Daily Cumulative Profits", 
+                                                                 "Daily Cumulative Drawdown",
+                                                                 "Daily Profit & loss",
+                                                                 "Day Wise total Profit & loss",
+                                                                 "Distribution of maximum adverse excursion Percentages (Plotly)",
+                                                                 "Distribution of maximum favorable excursion Percentages (Plotly)"))
+        
         figCharts.append_trace(go.Scatter(x=self.portfolioCum['Date'], y=self.portfolioCum['Cum. Daily_Net_Pnl'],
                     mode='lines+markers',
                     name='Cum. Profits'), row=1, col=1)
@@ -335,11 +372,49 @@ class PortfolioReportBuilder :
         figCharts.append_trace(go.Bar(x = self.portfolioDayWisePnl.index, y = self.portfolioDayWisePnl['Daily_Net_Pnl'],
                     name='Day wise total PnL'), row=4, col=1)
         
-        figCharts.update_layout(title_text="Charts", autosize = True, height = 900*4)
+        bin_edges = np.arange(0, 100,5)
+        
+        figCharts.append_trace(go.Histogram(x=report['MAE_%'], nbinsx=len(bin_edges)-1, xbins=dict(start=0, end=100), histnorm="percent"), row=5, col=1)
+        figCharts.append_trace(go.Histogram(x=report['MFE_%'], nbinsx=len(bin_edges)-1, xbins=dict(start=0, end=100), histnorm="percent"), row=6, col=1)
+
+        figCharts.update_layout(title_text="Charts",autosize = True, height = 700*8)
         figCharts.update_xaxes(rangeslider=dict(visible=False)) 
         figCharts.show()
         
-        return self.porfolio, self.portfolioCum, self.portfolioMontly, self.portfolioYearly
+        #///////////////////////////////// MAE PERCENTAGE OCCURANCES ///////////////////
+        
+        bin_edges = np.arange(0, 100,5)
+        histogram_chart = go.Figure()
+        
+        # Add the histogram trace
+        histogram_chart.add_trace(go.Histogram(x=report['MAE_%'], nbinsx=len(bin_edges)-1, xbins=dict(start=0, end=100), histnorm="percent"))
+        # Update layout
+        histogram_chart.update_layout(
+            title='Distribution of maximum adverse excursion Percentages (Plotly)',
+            xaxis_title='MAE Percentage (%)',
+            yaxis_title='Number of Occurrences',
+            xaxis=dict(tickvals = bin_edges, ticktext = [f'{val}%' for val in bin_edges])
+        )
+        #histogram_chart.show()
+        
+        histogram_chart = go.Figure()
+        
+        # Add the histogram trace
+        histogram_chart.add_trace(go.Histogram(x=report['MFE_%'], nbinsx=len(bin_edges)-1, xbins=dict(start=0, end=100), histnorm="percent"))
+        # Update layout
+        histogram_chart.update_layout(
+            title='Distribution of maximum favorable excursion Percentages (Plotly)',
+            xaxis_title='MFE Percentage (%)',
+            yaxis_title='Number of Occurrences',
+            xaxis=dict(tickvals = bin_edges, ticktext = [f'{val}%' for val in bin_edges])
+        )
+        #histogram_chart.show()
+        
+        
+        
+        
+        
+        return report, self.portfolioCum, self.portfolioMontly, self.portfolioYearly
         
 
              
