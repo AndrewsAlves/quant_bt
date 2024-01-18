@@ -631,6 +631,7 @@ class BacktestReportBuilder :
         fig.update_layout(
             showlegend=False,
             title_text= self.strategyName + " Report",
+            height = 1300
         )
     
                                         

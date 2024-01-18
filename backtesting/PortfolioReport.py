@@ -9,6 +9,7 @@ from dateutil.relativedelta import relativedelta
 from tabulate import tabulate
 from Utilities import StaticVariables as statics
 from backtesting import Backtesting as backtesting
+import Utils as util
 
 import plotly.express as pltEx
 from plotly.subplots import make_subplots
@@ -144,8 +145,6 @@ def getOnlyTheDays(tBook, dayList = []) :
     
     return daysDf
 
-
-
 def getStrategyDic(name,symbol, stgDf, capitalAllocated, daysList = [], onlyExpiryDays = False) :
     strategy = {}
     strategy['name'] = name
@@ -155,8 +154,7 @@ def getStrategyDic(name,symbol, stgDf, capitalAllocated, daysList = [], onlyExpi
     strategy['daysList'] = daysList
     strategy['onlyExpiryDay'] = onlyExpiryDays
     return strategy
-
-
+    
 class PortfolioReportBuilder :
     
     def __init__(self, portfolioName, portfolioDic, totalCapital, year = None) : 
@@ -186,6 +184,7 @@ class PortfolioReportBuilder :
             
             strategy['Entry Time'] = pd.to_datetime(strategy['Entry Time'])
             strategy['Exit Time'] = pd.to_datetime(strategy['Exit Time'])
+            
             
             if len(daysList) == 0 :
              if onlyExpiry : 

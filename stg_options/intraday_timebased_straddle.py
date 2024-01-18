@@ -56,7 +56,7 @@ Time frame = 5m
 """
 
 ## Margin Nifty 111000
-## Margin banknifty 86000 / 14100 for 25lot
+## Margin banknifty 86000 / 141000 for 25lot
 ## Margin finnifty 105000
 
 tradeBook = bt.TradeBook()

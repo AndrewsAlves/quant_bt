@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import datetime as dt
+from Utilities import StaticVariables as statics
 
 def Cumulative(lists):
     cu_list = []
@@ -83,7 +85,7 @@ def getPositionsSizing(stoplossPoints, risk_per_trade, lotSize, debug = True) :
     #print("Position size:", position_size)
     return position_size
 
-def getPositionsSizingForSelling(stoplossPoints, risk_per_trade, lotSize, marginPerLot = 100000, capital = 100000, debug = True) :
+def getPositionsSizingForSelling(stoplossPoints, risk_per_trade, lotSize, marginPerLot = 100000, capital = 100000,capitalCap = True, debug = True) :
 
     maxPosPosible = (capital / marginPerLot) * lotSize
     maxPosPosible = (int(maxPosPosible) // lotSize) * lotSize
@@ -99,8 +101,62 @@ def getPositionsSizingForSelling(stoplossPoints, risk_per_trade, lotSize, margin
     # calculate number of options
     position_size = (int(noOfUnitsPossible) // lotSize) * lotSize
     
+    if not capitalCap : return position_size
 
     if position_size > maxPosPosible: position_size = maxPosPosible
 
     #print("Position size:", position_size)
     return position_size
+
+def convertPositionSizing(stgTradeBook,symbol, hedged = False, capitalCap = True) :
+    
+    ## Margin Nifty 145000 / 50 lot size
+    ## Margin banknifty 110500 - 15 LS / 141000 - 25LS
+    ## Margin finnifty 132577
+    
+    if (symbol == statics.NIFTY) :
+        lotSize = 50
+        straddleMarginPerLot = 145000
+        if (hedged) : 
+            straddleMarginPerLot = 65414
+    elif (symbol == statics.BANKNIFTY) :
+        lotSize = 25
+        straddleMarginPerLot = 141000
+        if (hedged) : 
+            straddleMarginPerLot = 65414
+    elif (symbol == statics.FINNIFTY) :
+        lotSize = 40
+        straddleMarginPerLot = 132577
+        if (hedged) : 
+            straddleMarginPerLot = 51778
+        
+    capital = 1000000
+    riskPerTrade = 1
+    stg = stgTradeBook
+    entryTime = 0;
+    qty = 0;
+    
+    circularBanknifty = dt.datetime(2023,7,1)
+    
+    for index, row in stg.iterrows(): 
+        
+        if symbol == statics.BANKNIFTY and dt.datetime.strptime(row['Entry Time'],'%Y-%m-%d %H:%M:%S') >= circularBanknifty and lotSize != 15: 
+              print("Changed lot size")
+              lotSize = 15
+              straddleMarginPerLot = 110500
+              if (hedged) : 
+                  straddleMarginPerLot = 39249
+        
+        if (entryTime != row['Entry Time']):  
+            entryTime = row['Entry Time']
+            slPoints = round(row['SL price'] - row['Entry Price'],2)
+            qty = getPositionsSizingForSelling(abs(slPoints), ((capital / 100) * riskPerTrade),
+                                                lotSize,
+                                                straddleMarginPerLot,
+                                                capital,
+                                                capitalCap,
+                                                False)
+        stg.at[index,'quantity'] = qty
+        stg.at[index,'profit'] = (row['Entry Price'] - row['Exit Price']) * qty
+        stg.at[index,'MAE Pnl'] = (row['Entry Price'] - row['MAE Price']) * qty
+        stg.at[index,'MFE Pnl'] = (row['Entry Price'] - row['MFE Price']) * qty

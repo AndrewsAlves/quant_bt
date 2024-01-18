@@ -11,7 +11,6 @@ backtestReportPath = "G:\\andyvoid\\data\\backtest_report\\"
 backtestReportTradesPath = "G:\\andyvoid\\data\\backtest_report\\backtest_trades\\"
 path_bnfOptionsdb = "G:\\andyvoid\\data\\quotes\\csv_database\\banknifty\\options"
 
-
 strategiesDf = pd.read_csv(backtestReportPath + "strategy.csv")
 
 #%%

@@ -5,6 +5,10 @@ from backtesting import Backtesting
 import plotly.graph_objects as go
 from datetime import datetime
 from backtesting import PortfolioReport as pr
+import Utils as util
+from Utilities import StaticVariables as statics
+import datetime as dt
+
 
 #%%
 
@@ -26,16 +30,27 @@ finstg920 = pd.read_csv(backtestReportTradesPath  + '2116b53a_Finnifty 9 20 25 S
 finstg11 = pd.read_csv(backtestReportTradesPath  + 'f0788de4_Finnifty 11 15 25 SL Classic_MAE.csv') #--
 #finstg1pm = pd.read_csv(backtestReportTradesPath + '5d9098a8_finNifty 13 15 25 SL Classic.csv')
 
+
+#%%
+hedge = False
+capitalCap = True
+util.convertPositionSizing(stg920, statics.NIFTY, hedge, capitalCap)
+util.convertPositionSizing(stg11, statics.NIFTY, hedge, capitalCap)
+util.convertPositionSizing(bnfstg920, statics.BANKNIFTY, hedge, capitalCap)
+util.convertPositionSizing(bnfstg11, statics.BANKNIFTY, hedge, capitalCap)
+util.convertPositionSizing(finstg920, statics.FINNIFTY, hedge, capitalCap)
+util.convertPositionSizing(finstg11, statics.FINNIFTY, hedge, capitalCap)
+
 #%%
 portforlioDic = {}
 portforlioDic['NIFTY_9:20'] = pr.getStrategyDic('NIFTY_9:20', 'NIFTY', stg920, 1000000 , onlyExpiryDays=True)
-portforlioDic['NIFTY_11:15'] = pr.getStrategyDic('NIFTY_11:15', 'NIFTY', stg11, 1000000, onlyExpiryDays=False)
+portforlioDic['NIFTY_11:15'] = pr.getStrategyDic('NIFTY_11:15', 'NIFTY', stg11, 1000000, onlyExpiryDays=True )
 #portforlioDic['NIFTY_1:15'] = pr.getStrategyDic('NIFTY_1:15', 'NIFTY', stg1pm, 1000000 )
-portforlioDic['BANKNIFTY_9:20'] = pr.getStrategyDic('BANKNIFTY_9:20', 'BANKNIFTY', bnfstg920, 1000000 , onlyExpiryDays=True)
-portforlioDic['BANKNIFTY_11:15'] = pr.getStrategyDic('BANKNIFTY_11:15', 'BANKNIFTY', bnfstg11, 1000000 , onlyExpiryDays=True)
+portforlioDic['BANKNIFTY_9:20'] = pr.getStrategyDic('BANKNIFTY_9:20', 'BANKNIFTY', bnfstg920, 1000000 , onlyExpiryDays=True )
+portforlioDic['BANKNIFTY_11:15'] = pr.getStrategyDic('BANKNIFTY_11:15', 'BANKNIFTY', bnfstg11, 1000000 ,onlyExpiryDays=True)
 #portforlioDic['BANKNIFTY_1:15'] = pr.getStrategyDic('BANKNIFTY_1:15', 'BANKNIFTY', bnfstg1pm, 1000000 )
-portforlioDic['FINNIFTY_9:20'] = pr.getStrategyDic('FINNIFTY_9:20', 'FINNIFTY', finstg920, 1000000, daysList = ['Monday', 'Tuesday'])
-portforlioDic['FINNIFTY_11:15'] = pr.getStrategyDic('FINNIFTY_11:15', 'FINNIFTY', finstg11, 1000000, daysList = ['Monday', 'Tuesday'])
+portforlioDic['FINNIFTY_9:20'] = pr.getStrategyDic('FINNIFTY_9:20', 'FINNIFTY', finstg920, 1000000, daysList=['Monday', 'Tuesday'])
+portforlioDic['FINNIFTY_11:15'] = pr.getStrategyDic('FINNIFTY_11:15', 'FINNIFTY', finstg11, 1000000, daysList=['Monday', 'Tuesday'])
 #portforlioDic['FINNIFTY_1:15'] = pr.getStrategyDic('FINNIFTY_1:15', 'FINNIFTY', finstg1pm, 1000000 )
 #daysList = ['Monday', 'Tuesday']
 
