@@ -172,7 +172,7 @@ class PortfolioReportBuilder :
         #self.endDate = endDate
 
 
-    def generate(self) :
+    def generate(self, toHtml = False, htmlPath = "") :
         
         stgNameList = []
         for stgName,strategyDic in self.portfolioDic.items() :
@@ -336,6 +336,7 @@ class PortfolioReportBuilder :
         # Plot the figure
         fig.show()
         
+        
          #//////////////////////////////// CHART LAYOUT //////////////////
         
         runningDrawdownDf = pd.DataFrame()
@@ -373,8 +374,9 @@ class PortfolioReportBuilder :
         
         bin_edges = np.arange(0, 100,5)
         
-        figCharts.append_trace(go.Histogram(x=report['MAE_%'], nbinsx=len(bin_edges)-1, xbins=dict(start=0, end=100), histnorm="percent"), row=5, col=1)
-        figCharts.append_trace(go.Histogram(x=report['MFE_%'], nbinsx=len(bin_edges)-1, xbins=dict(start=0, end=100), histnorm="percent"), row=6, col=1)
+        
+        figCharts.append_trace(go.Histogram(x= report[report['profit'] > 0]['MAE_%'], nbinsx=len(bin_edges)-1, xbins=dict(start=0, end=100), histnorm="percent"), row=5, col=1)
+        figCharts.append_trace(go.Histogram(x= report[report['profit'] < 0]['MFE_%'], nbinsx=len(bin_edges)-1, xbins=dict(start=0, end=100), histnorm="percent"), row=6, col=1)
 
         figCharts.update_layout(title_text="Charts",autosize = True, height = 700*8)
         figCharts.update_xaxes(rangeslider=dict(visible=False)) 
@@ -382,7 +384,7 @@ class PortfolioReportBuilder :
         
         #///////////////////////////////// MAE PERCENTAGE OCCURANCES ///////////////////
         
-        bin_edges = np.arange(0, 100,5)
+        """bin_edges = np.arange(0, 100,5)
         histogram_chart = go.Figure()
         
         # Add the histogram trace
@@ -407,10 +409,13 @@ class PortfolioReportBuilder :
             yaxis_title='Number of Occurrences',
             xaxis=dict(tickvals = bin_edges, ticktext = [f'{val}%' for val in bin_edges])
         )
-        #histogram_chart.show()
+        #histogram_chart.show()"""
         
         
-        
+        """ WRITE TO HTML """
+        if toHtml :
+            fig.write_html(htmlPath + "\\charts.html")
+            figCharts.write_html(htmlPath + "\\graphs.html")
         
         
         return report, self.portfolioCum, self.portfolioMontly, self.portfolioYearly

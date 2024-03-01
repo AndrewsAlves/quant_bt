@@ -85,7 +85,7 @@ def getPositionsSizing(stoplossPoints, risk_per_trade, lotSize, debug = True) :
     #print("Position size:", position_size)
     return position_size
 
-def getPositionsSizingForSelling(stoplossPoints, risk_per_trade, lotSize, marginPerLot = 100000, capital = 100000,capitalCap = True, debug = True) :
+def getPositionsSizingForSelling(stoplossPoints, risk_per_trade, lotSize, marginPerLot = 100000, capital = 100000, capitalCap = True, debug = True) :
 
     maxPosPosible = (capital / marginPerLot) * lotSize
     maxPosPosible = (int(maxPosPosible) // lotSize) * lotSize
@@ -108,7 +108,7 @@ def getPositionsSizingForSelling(stoplossPoints, risk_per_trade, lotSize, margin
     #print("Position size:", position_size)
     return position_size
 
-def convertPositionSizing(stgTradeBook,symbol, hedged = False, capitalCap = True) :
+def convertPositionSizing(stgTradeBook,symbol, totalCapital = 1000000, hedged = False, capitalCap = True) :
     
     ## Margin Nifty 145000 / 50 lot size
     ## Margin banknifty 110500 - 15 LS / 141000 - 25LS
@@ -130,7 +130,7 @@ def convertPositionSizing(stgTradeBook,symbol, hedged = False, capitalCap = True
         if (hedged) : 
             straddleMarginPerLot = 51778
         
-    capital = 1000000
+    capital = totalCapital
     riskPerTrade = 1
     stg = stgTradeBook
     entryTime = 0;

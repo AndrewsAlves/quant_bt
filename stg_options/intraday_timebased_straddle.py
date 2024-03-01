@@ -34,13 +34,16 @@ strTimeformat = "%Y/%m/%d - %H:%M:%S"
 
 #start_date = '2017-01'
 #end_date = '2023-08'
-start_date = '2022-01'
-end_date = '2023-11-09'
+#LocalCsvDatabase.NIFTY_OPTION_START_DATE
+start_date = LocalCsvDatabase.FINNIFTY_OPTION_START_DATE
+end_date = '2024-02-26'
 O = "Open"
 H = "High"
 L = "Low"
 C = "Close"
 
+#9 20
+#11 15 
 hour = 11
 minute = 15
 
@@ -51,13 +54,14 @@ bnfResampled = csvDatabase.getSymbolTimeSeries(start_date, end_date, tf_5Min)
 #%%
 
 """
-920 strategy and backtesting section 
+920 strategy and backtesting section  
 Time frame = 5m 
 """
 
-## Margin Nifty 111000
-## Margin banknifty 86000 / 141000 for 25lot
-## Margin finnifty 105000
+## Margin Nifty 145000 | lot 50 | Strike Diff - 50
+## Margin banknifty 110500 15 Lot / 141000 for 25lot | Strike Diff - 100
+## Margin finnifty 105000 | 40 Lot Diff - 50
+
 
 tradeBook = bt.TradeBook()
 positions = {}
@@ -70,9 +74,12 @@ qty = 40
 riskPerTrade = 1 # percentage of capital%
 capital = 1000000
 marginPerLot = 105000
+target10Per = True
 
-circular4402 = dt.datetime(2022,10,18)
-#circularBanknifty = dt.datetime(2023,7,1)
+# Circular finnifty Strike interval change from 100 - to 50 
+circularFinnifty = dt.datetime(2022,10,18)
+# Circular Banknifty Lot size change from 25 - to 15
+circularBanknifty = dt.datetime(2023,7,1)
 
 dfTemp = pd.DataFrame()
 
@@ -88,6 +95,7 @@ def placeOrder(tickerSymbol, tickerDf, datetime, SLper, qty, tradeType, tradeObj
     entryprice = 0
     sl = 0
     orderStatus = 0
+    target = 0
     
     if tickerDf is None:
         print("\n Order execution pending, Dataframe None: " + tickerSymbol + " " , datetime)
@@ -95,19 +103,25 @@ def placeOrder(tickerSymbol, tickerDf, datetime, SLper, qty, tradeType, tradeObj
         if datetime in tickerDf.index :
             entryprice = tickerDf.loc(axis = 0)[datetime, "Open"]
             sl = entryprice + (entryprice / 100) * SLper
+            
+            if target10Per : 
+                target = (entryprice / 100) * 10
+                
             if adaptivePs : 
                 qty = Utils.getPositionsSizingForSelling(abs(sl - entryprice), ((capital / 100) * riskPerTrade),
                                                          lotSize,
                                                          marginPerLot,
                                                          capital,
-                                                         False)
+                                                         True, 
+                                                         debug=False)
             orderStatus = 1
         else :
             addMissingData(tickerSymbol, datetime.strftime(strTimeformat))
             #missingData.append(tickerSymbol + " " + datetime.strftime(strTimeformat))
             print("\n Order execution pending, price data not found : " + tickerSymbol + " " , datetime)
     
-    tradeObj.openPosition(tickerSymbol, datetime, tradeType, qty, entryprice, SLprice = sl, isOptions = True, orderStatus = orderStatus)
+    tradeObj.openPosition(tickerSymbol, datetime, tradeType, qty, entryprice, SLprice = sl, 
+                          target = target, isOptions = True, orderStatus = orderStatus)
     return tradeObj
 
 def getOptionDfAdjusted(strike, datetime) :
@@ -189,14 +203,14 @@ for i, row in tqdm(bnfResampled.iterrows(), desc = "Backtesting", total = bnfRes
     closeP = row["Close"]
     expiryday = False
     
-    if datentime >= circular4402 : 
+    if datentime >= circularFinnifty and strikeDiff != 50: 
         print("Changed strike interval")
         strikeDiff = 50
-     
+    
     #if datentime >= circularBanknifty and lotSize != 15: 
     #     print("Changed lot size")
     #     lotSize = 15
-    #     marginPerLot = 85000
+    #     marginPerLot = 110500
     
     if i > 0 and datentime.date().day != bnfResampled.loc[i-1,"Date"].day: newday = True
     else : newday = False
@@ -206,7 +220,7 @@ for i, row in tqdm(bnfResampled.iterrows(), desc = "Backtesting", total = bnfRes
      ## if T = 15 10 close the remaining positions automatically
     
     #strike = str(round(round(closeP,-2)))
-    strike = str(getstrikeFromLtp(closeP))
+    strike = str(getstrikeFromLtp(openP))
     #print(closeP)
     #print(strike)
     
@@ -256,9 +270,11 @@ for i, row in tqdm(bnfResampled.iterrows(), desc = "Backtesting", total = bnfRes
                                     priceTrackerDf[tradeId].loc(axis = 0)[datentime, "High"])
                     
                 slprice = trade.stopLossPrice
+                target = trade.target
                 barHigh = priceTrackerDf[tradeId].loc(axis = 0)[datentime, "High"]
+                barLow = priceTrackerDf[tradeId].loc(axis = 0)[datentime, "Low"]
                 
-                if barHigh > slprice : 
+                if barHigh >= slprice : 
                     exitPrice = slprice + slippage
                     trade.MAE = exitPrice
                     trade.closePosition(datentime, exitPrice)
@@ -267,6 +283,19 @@ for i, row in tqdm(bnfResampled.iterrows(), desc = "Backtesting", total = bnfRes
                     priceTrackerDf.pop(tradeId)
                     
                     tradeBook.addTrade(trade)
+                
+                if barLow <= target and target10Per: 
+                    
+                    exitPrice = target + slippage
+                    trade.MFE = exitPrice
+                    trade.closePosition(datentime, exitPrice)
+                    
+                    positions.pop(tradeId)
+                    priceTrackerDf.pop(tradeId)
+                    
+                    tradeBook.addTrade(trade)
+                    
+                
                     
                     
     """ CLOSE THE ALL POSITIONS IF TIME IS 15:10 and ABOVE"""    
@@ -301,25 +330,27 @@ strategyAr = sa.StrategyArsenal()
 
 flag = {}
 flag['id'] = strategyAr.getNewStrategyId()
-flag['strategy_name'] = "Finnifty 11 15 25 SL Classic_MAE"
+flag['strategy_name'] = "finnifty 11 15 25 SL Classic, Strike fix, Target"
 flag['start_date'] = start_date
 flag['end_date'] = end_date
 flag['desc'] = "11 15 am short straddle with 25% stoploss based on premium and Lot size based on adaptive position sizing based on points and Max size is based on capital"
 flag['stars'] = 4
 
+
 #%%
 stgId, strategies = strategyAr.addStrategy(flag, tradeBook)
 
 #%%
+""" THIS SECTION IS TO ADD NEWLY TESTED TRADES WITH ITS CORRESPONDING STRATEGY """
 backtestReportTradesPath = "G:\\andyvoid\\data\\backtest_report\\backtest_trades\\"
-bnfstg920 = pd.read_csv(backtestReportTradesPath  + '8164be89_Finnifty 9 20 25 SL Classic.csv')
+bnfstg920 = pd.read_csv(backtestReportTradesPath  + 'f0788de4_Finnifty 11 15 25 SL Classic_MAE.csv')
 bnfstg920.drop('Unnamed: 0', axis = 1, inplace=True)
 
 finalDf = bnfstg920.append(tradeBook.getTradeBook())
 finalDf.reset_index(inplace = True)
 finalDf.drop('index', axis = 1, inplace=True)
 #%%
-finalDf.to_csv(backtestReportTradesPath + '8164be89_Finnifty 9 20 25 SL Classic.csv')
+finalDf.to_csv(backtestReportTradesPath + 'f0788de4_Finnifty 11 15 25 SL Classic_MAE.csv')
 
 
 

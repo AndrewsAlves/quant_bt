@@ -67,6 +67,7 @@ class TradeBook():
         entryPrice = []
         expiry = []
         stopLossPrice = []
+        target = []
         tradeExitTime = []
         exitPrice = []
         profits = []
@@ -90,6 +91,7 @@ class TradeBook():
             qty.append(trade.qty)
             entryPrice.append(trade.entryPrice)
             stopLossPrice.append(trade.stopLossPrice)
+            target.append(trade.target)
             tradeExitTime.append(trade.tradeExitTime)
             exitPrice.append(trade.exitPrice)
             expiry.append(trade.expiry)
@@ -107,6 +109,7 @@ class TradeBook():
                       "quantity" : qty,
                       "Entry Price" : entryPrice,
                       "SL price" : stopLossPrice,
+                      "target" : target,
                       "orderStatus" : orderStatus,
                       "Exit Time" : tradeExitTime,
                       "Exit Price" : exitPrice,
@@ -158,6 +161,7 @@ class Trade():
         self.expiry = 0
         self.isOptions = False
         self.stopLossPrice = 0
+        self.target = 0
         self.tradeExitTime = None
         self.exitPrice = 0
         self.isOpen = False
@@ -172,7 +176,7 @@ class Trade():
         
             
         
-    def openPosition(self, symbol, tradetime, tradetype, qty = 0, price = 0, expiry = 0, isOptions = False, SLprice = 0, orderStatus = "pending"):
+    def openPosition(self, symbol, tradetime, tradetype, qty = 0, price = 0, expiry = 0, isOptions = False, SLprice = 0, target = 0, orderStatus = "pending"):
         self.symbol = symbol
         self.tradeEntryTime = tradetime
         self.tradeType = tradetype
@@ -181,6 +185,7 @@ class Trade():
         self.expiry = expiry
         self.isOptions = isOptions
         self.stopLossPrice = SLprice
+        self.target = target
         self.isOpen = True
         self.orderStatus = orderStatus
         self.MAE = price
@@ -217,7 +222,6 @@ class Trade():
             self.MFE_pnl =  round((self.entryPrice - self.MFE) * self.qty, 2)
             
         
-
         if exitPrice == 0 : 
             self.profit = 0
             self.exitOrderStatus = 0

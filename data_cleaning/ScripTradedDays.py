@@ -16,7 +16,7 @@ tradedDays.drop_duplicates(keep = 'first', inplace= True)
 tradedDays = tradedDays.reset_index()
 tradedDays.drop('index', axis = 1)
 
-niftyOptionTickers = pd.read_csv("G:\\andyvoid\\data\\quotes\\bhav\\temp\\finnifty_oct_nov_CEPE_All_strikes.csv")
+niftyOptionTickers = pd.read_csv("G:\\andyvoid\\data\\quotes\\bhav\\finnifty\\finnifty_2023_CEPE_2024_feb.csv")
 niftyOptionTickers['EXPIRY_DT'] = pd.to_datetime(niftyOptionTickers['EXPIRY_DT'], format = "%Y-%m-%d")
 #%%
 tickerTradedDayList = []
@@ -71,9 +71,10 @@ for item in dummy:
     for idx , date in enumerate(item):
         item[idx] = date.strftime("%Y-%m-%d") 
         
+        
 #%%
 niftyOptionTickers['DaysTraded'] = dummy
-niftyOptionTickers.to_csv("G:\\andyvoid\\data\\quotes\\bhav\\temp\\finnift_oct_nov_CEPE_All_strikes_traded_days.csv", index = False)
+niftyOptionTickers.to_csv("G:\\andyvoid\\data\\quotes\\bhav\\finnifty\\finnifty_2023_CEPE_2024_feb_all_traded_days.csv", index = False)
 
             
     
